@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "E:\\EvacuationSystem\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj": {}
+    "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj": {}
   },
   "projects": {
-    "E:\\EvacuationSystem\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj": {
+    "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\EvacuationSystem\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
+        "projectUniqueName": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
         "projectName": "EvacuationSystem.Api",
-        "projectPath": "E:\\EvacuationSystem\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
-        "packagesPath": "C:\\Users\\maksym\\.nuget\\packages\\",
-        "outputPath": "E:\\EvacuationSystem\\EvacuationSystem.Api\\EvacuationSystem.Api\\obj\\",
+        "projectPath": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
+        "packagesPath": "C:\\Users\\Макс\\.nuget\\packages\\",
+        "outputPath": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\maksym\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Макс\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,7 +26,6 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -45,7 +44,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "9.0.200"
       },
       "frameworks": {
         "net8.0": {
@@ -75,7 +74,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
