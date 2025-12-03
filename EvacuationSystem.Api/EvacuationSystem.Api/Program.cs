@@ -1,4 +1,4 @@
-using EvacuationSystem.Api.Data;
+﻿using EvacuationSystem.Api.Data;
 using EvacuationSystem.Api.Contracts.Buildings;
 using EvacuationSystem.Api.Contracts.Floors;
 using EvacuationSystem.Api.Contracts.Rooms;
@@ -6,15 +6,26 @@ using EvacuationSystem.Api.Contracts.Nodes;
 using EvacuationSystem.Api.Contracts.Edges;
 using EvacuationSystem.Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using EvacuationSystem.Api.Services.Navigation;
+using EvacuationSystem.Api.Contracts.Navigation;
+using EvacuationSystem.Api.Contracts.Maps;
+using EvacuationSystem.Api.Services.Simulation;
+using EvacuationSystem.Api.Contracts.Simulation;
+using Microsoft.AspNetCore.Mvc;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DbContext -----
+// DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
     options.UseSqlServer(connectionString);
 });
+
+// Services
+builder.Services.AddScoped<INavigationService, NavigationService>();
+builder.Services.AddScoped<ISimulationService, SimulationService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -410,6 +421,447 @@ edgesGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
     await db.SaveChangesAsync();
 
     return Results.NoContent();
+});
+
+// ######################################################################################################
+// NAVIGATION
+// ######################################################################################################
+
+
+var navigationGroup = app.MapGroup("/api/navigation");
+
+// GET /api/navigation/path?fromNodeId=1&toNodeId=10&algorithm=astar|dijkstra
+navigationGroup.MapGet("/path", async (
+    int fromNodeId,
+    int toNodeId,
+    string? algorithm,
+    [FromServices] INavigationService navigationService,
+    [FromServices] AppDbContext db) =>
+{
+    var algo = algorithm?.ToLower() switch
+    {
+        "dijkstra" => NavigationAlgorithm.Dijkstra,
+        "astar" => NavigationAlgorithm.AStar,
+        null => NavigationAlgorithm.AStar,
+        _ => NavigationAlgorithm.AStar
+    };
+
+    var result = await navigationService.FindPathAsync(fromNodeId, toNodeId, algo);
+
+    if (result is null || result.PathNodes.Count == 0)
+        return Results.NotFound("Path not found");
+
+    var dto = new NavigationPathDto(
+        result.PathNodes.Select(n =>
+            new NavigationPathNodeDto(
+                n.Id,
+                n.X,
+                n.Y,
+                n.IsExit,
+                n.IsStair,
+                n.FloorId,
+                n.RoomId
+            )
+        ).ToList(),
+        result.TotalLength,
+        result.TotalCost
+    );
+
+    return Results.Ok(dto);
+});
+
+// GET /api/navigation/room-to-room?fromRoomId=1&toRoomId=5&algorithm=astar|dijkstra
+navigationGroup.MapGet("/room-to-room", async (
+    int fromRoomId,
+    int toRoomId,
+    string? algorithm,
+    INavigationService navigationService,
+    AppDbContext db) =>
+{
+    var algo = algorithm?.ToLower() switch
+    {
+        "dijkstra" => NavigationAlgorithm.Dijkstra,
+        "astar" => NavigationAlgorithm.AStar,
+        null => NavigationAlgorithm.AStar,
+        _ => NavigationAlgorithm.AStar
+    };
+
+    var fromRoomNodes = await db.Nodes
+        .Where(n => n.RoomId == fromRoomId)
+        .ToListAsync();
+
+    var toRoomNodes = await db.Nodes
+        .Where(n => n.RoomId == toRoomId)
+        .ToListAsync();
+
+    if (!fromRoomNodes.Any() || !toRoomNodes.Any())
+        return Results.BadRequest("One or both rooms do not have any nodes");
+
+    NavigationResult? bestResult = null;
+
+    // шукаємо найкоротший маршрут між усіма парами вузлів
+    foreach (var start in fromRoomNodes)
+    {
+        foreach (var end in toRoomNodes)
+        {
+            var result = await navigationService.FindPathAsync(start.Id, end.Id, algo);
+            if (result is null || !result.PathNodes.Any())
+                continue;
+
+            if (bestResult is null || result.TotalCost < bestResult.TotalCost)
+            {
+                bestResult = result;
+            }
+        }
+    }
+
+    if (bestResult is null)
+        return Results.NotFound("Path between rooms not found");
+
+    var dto = new NavigationPathDto(
+        bestResult.PathNodes.Select(n =>
+            new NavigationPathNodeDto(
+                n.Id,
+                n.X,
+                n.Y,
+                n.IsExit,
+                n.IsStair,
+                n.FloorId,
+                n.RoomId
+            )
+        ).ToList(),
+        bestResult.TotalLength,
+        bestResult.TotalCost
+    );
+
+    return Results.Ok(dto);
+});
+
+
+// GET /api/navigation/room-to-exit?roomId=1&algorithm=astar|dijkstra
+navigationGroup.MapGet("/room-to-exit", async (
+    int roomId,
+    string? algorithm,
+    INavigationService navigationService,
+    AppDbContext db) =>
+{
+    var algo = algorithm?.ToLower() switch
+    {
+        "dijkstra" => NavigationAlgorithm.Dijkstra,
+        "astar" => NavigationAlgorithm.AStar,
+        null => NavigationAlgorithm.AStar,
+        _ => NavigationAlgorithm.AStar
+    };
+
+    var roomNodes = await db.Nodes
+        .Where(n => n.RoomId == roomId)
+        .ToListAsync();
+
+    if (!roomNodes.Any())
+        return Results.BadRequest("Room has no nodes");
+
+    // беремо поверх кімнати (виходимо з першого вузла)
+    var floorId = roomNodes.First().FloorId;
+
+    var exitNodes = await db.Nodes
+        .Where(n => n.FloorId == floorId && n.IsExit)
+        .ToListAsync();
+
+    if (!exitNodes.Any())
+        return Results.BadRequest("No exits defined on this floor");
+
+    NavigationResult? bestResult = null;
+
+    foreach (var start in roomNodes)
+    {
+        foreach (var exit in exitNodes)
+        {
+            var result = await navigationService.FindPathAsync(start.Id, exit.Id, algo);
+            if (result is null || !result.PathNodes.Any())
+                continue;
+
+            if (bestResult is null || result.TotalCost < bestResult.TotalCost)
+            {
+                bestResult = result;
+            }
+        }
+    }
+
+    if (bestResult is null)
+        return Results.NotFound("Path from room to exit not found");
+
+    var dto = new NavigationPathDto(
+        bestResult.PathNodes.Select(n =>
+            new NavigationPathNodeDto(
+                n.Id,
+                n.X,
+                n.Y,
+                n.IsExit,
+                n.IsStair,
+                n.FloorId,
+                n.RoomId
+            )
+        ).ToList(),
+        bestResult.TotalLength,
+        bestResult.TotalCost
+    );
+
+    return Results.Ok(dto);
+});
+
+
+
+
+var fullMapGroup = app.MapGroup("/api/maps");
+
+// GET /api/maps/floor/5
+fullMapGroup.MapGet("/floor/{floorId:int}", async (int floorId, AppDbContext db) =>
+{
+    var floor = await db.Floors
+        .Where(f => f.Id == floorId)
+        .Select(f => new
+        {
+            f.Id,
+            f.Number,
+            f.Name,
+            f.BuildingId
+        })
+        .FirstOrDefaultAsync();
+
+    if (floor is null)
+        return Results.NotFound("Floor not found");
+
+    var rooms = await db.Rooms
+        .Where(r => r.FloorId == floorId)
+        .Select(r => new
+        {
+            r.Id,
+            r.Number,
+            r.Type,
+            r.FloorId
+        })
+        .ToListAsync();
+
+    var nodes = await db.Nodes
+        .Where(n => n.FloorId == floorId)
+        .Select(n => new
+        {
+            n.Id,
+            n.X,
+            n.Y,
+            n.IsExit,
+            n.IsStair,
+            n.FloorId,
+            n.RoomId
+        })
+        .ToListAsync();
+
+    var edges = await db.Edges
+        .Where(e =>
+            nodes.Select(n => n.Id).Contains(e.FromNodeId) &&
+            nodes.Select(n => n.Id).Contains(e.ToNodeId))
+        .Select(e => new
+        {
+            e.Id,
+            e.FromNodeId,
+            e.ToNodeId,
+            e.Length,
+            e.Cost,
+            e.IsBlocked
+        })
+        .ToListAsync();
+
+    var result = new
+    {
+        Floor = floor,
+        Rooms = rooms,
+        Nodes = nodes,
+        Edges = edges
+    };
+
+    return Results.Ok(result);
+});
+
+fullMapGroup.MapGet("/floor/{floorId:int}/validate", async (int floorId, AppDbContext db) =>
+{
+    var errors = new List<string>();
+
+    var floor = await db.Floors.FindAsync(floorId);
+    if (floor is null)
+        return Results.NotFound("Floor not found");
+
+    // Rooms
+    var rooms = await db.Rooms.Where(r => r.FloorId == floorId).ToListAsync();
+
+    // Nodes
+    var nodes = await db.Nodes.Where(n => n.FloorId == floorId).ToListAsync();
+
+    // Edges
+    var nodeIds = nodes.Select(n => n.Id).ToList();
+    var edges = await db.Edges
+        .Where(e => nodeIds.Contains(e.FromNodeId) || nodeIds.Contains(e.ToNodeId))
+        .ToListAsync();
+
+    // ───────────────────────────────────────────────────────────────
+    // 1. Room has no nodes
+    // ───────────────────────────────────────────────────────────────
+    foreach (var room in rooms)
+    {
+        var roomNodes = nodes.Where(n => n.RoomId == room.Id).ToList();
+        if (roomNodes.Count == 0)
+            errors.Add($"Room {room.Number} (ID {room.Id}) has no nodes");
+    }
+
+    // ───────────────────────────────────────────────────────────────
+    // 2. Node has no edges
+    // ───────────────────────────────────────────────────────────────
+    foreach (var node in nodes)
+    {
+        var connected = edges.Any(e => e.FromNodeId == node.Id || e.ToNodeId == node.Id);
+        if (!connected)
+            errors.Add($"Node {node.Id} has no edges (isolated node)");
+    }
+
+    // ───────────────────────────────────────────────────────────────
+    // 3. Floor has no exit nodes
+    // ───────────────────────────────────────────────────────────────
+    var exitNodes = nodes.Where(n => n.IsExit).ToList();
+    if (exitNodes.Count == 0)
+        errors.Add($"Floor {floor.Number} has no exit nodes");
+
+    // ───────────────────────────────────────────────────────────────
+    // 4. Isolated graph components (unreachable)
+    // ───────────────────────────────────────────────────────────────
+    if (nodes.Count > 0)
+    {
+        var visited = new HashSet<int>();
+        var queue = new Queue<int>();
+
+        // стартуємо BFS з першого нода
+        queue.Enqueue(nodes.First().Id);
+        visited.Add(nodes.First().Id);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+
+            var neighbors = edges
+                .Where(e => e.FromNodeId == current || e.ToNodeId == current)
+                .Select(e => e.FromNodeId == current ? e.ToNodeId : e.FromNodeId)
+                .Where(id => !visited.Contains(id));
+
+            foreach (var next in neighbors)
+            {
+                visited.Add(next);
+                queue.Enqueue(next);
+            }
+        }
+
+        // ноди, до яких не можна дістатися
+        var isolated = nodes.Where(n => !visited.Contains(n.Id)).ToList();
+        foreach (var bad in isolated)
+        {
+            errors.Add($"Node {bad.Id} is unreachable from the rest of the graph");
+        }
+    }
+
+    // ───────────────────────────────────────────────────────────────
+    // 5. Orphan edges (point to nodes not on this floor)
+    // ───────────────────────────────────────────────────────────────
+    foreach (var edge in edges)
+    {
+        if (!nodeIds.Contains(edge.FromNodeId))
+            errors.Add($"Edge {edge.Id} references missing FromNodeId {edge.FromNodeId}");
+
+        if (!nodeIds.Contains(edge.ToNodeId))
+            errors.Add($"Edge {edge.Id} references missing ToNodeId {edge.ToNodeId}");
+    }
+
+    // ───────────────────────────────────────────────────────────────
+
+    var result = new MapValidationResultDto(
+        IsValid: errors.Count == 0,
+        Errors: errors
+    );
+
+    return Results.Ok(result);
+});
+
+navigationGroup.MapGet("/room-to-exit-multi", async (
+    int roomId,
+    string? algorithm,
+    INavigationService navigationService,
+    AppDbContext db) =>
+{
+    var algo = algorithm?.ToLower() switch
+    {
+        "dijkstra" => NavigationAlgorithm.Dijkstra,
+        "astar" => NavigationAlgorithm.AStar,
+        _ => NavigationAlgorithm.AStar
+    };
+
+    // nodes in selected room
+    var roomNodes = await db.Nodes
+        .Where(n => n.RoomId == roomId)
+        .ToListAsync();
+
+    if (!roomNodes.Any())
+        return Results.BadRequest("Room has no nodes");
+
+    // ALL exits in the entire building
+    var exitNodes = await db.Nodes
+        .Where(n => n.IsExit)
+        .ToListAsync();
+
+    if (!exitNodes.Any())
+        return Results.BadRequest("Building has no exit nodes");
+
+    NavigationResult? bestResult = null;
+
+    foreach (var start in roomNodes)
+    {
+        foreach (var exit in exitNodes)
+        {
+            var result = await navigationService.FindPathAsync(start.Id, exit.Id, algo);
+            if (result is null || !result.PathNodes.Any())
+                continue;
+
+            if (bestResult is null || result.TotalCost < bestResult.TotalCost)
+                bestResult = result;
+        }
+    }
+
+    if (bestResult is null)
+        return Results.NotFound("Path to exit not found");
+
+    var dto = new NavigationPathDto(
+        bestResult.PathNodes.Select(n =>
+            new NavigationPathNodeDto(
+                n.Id,
+                n.X,
+                n.Y,
+                n.IsExit,
+                n.IsStair,
+                n.FloorId,
+                n.RoomId
+            )
+        ).ToList(),
+        bestResult.TotalLength,
+        bestResult.TotalCost
+    );
+
+    return Results.Ok(dto);
+});
+
+var simulationGroup = app.MapGroup("/api/simulation");
+
+// POST /api/simulation/run
+simulationGroup.MapPost("/run", async (
+    SimulationRequest request,
+    ISimulationService simulationService) =>
+{
+    var result = await simulationService.RunSimulationAsync(request);
+    return Results.Ok(result);
 });
 
 
