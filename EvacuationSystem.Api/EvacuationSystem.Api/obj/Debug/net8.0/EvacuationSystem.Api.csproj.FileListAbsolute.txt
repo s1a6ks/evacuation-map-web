@@ -139,3 +139,4 @@ C:\evacuation\evacuation-map-web\EvacuationSystem.Api\EvacuationSystem.Api\bin\D
 C:\evacuation\evacuation-map-web\EvacuationSystem.Api\EvacuationSystem.Api\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\evacuation\evacuation-map-web\EvacuationSystem.Api\EvacuationSystem.Api\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\evacuation\evacuation-map-web\EvacuationSystem.Api\EvacuationSystem.Api\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\evacuation\evacuation-map-web\EvacuationSystem.Api\EvacuationSystem.Api\bin\Debug\net8.0\EvacuationSystem.Api.staticwebassets.runtime.json
