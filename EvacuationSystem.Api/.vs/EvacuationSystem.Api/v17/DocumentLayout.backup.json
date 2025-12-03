@@ -3,28 +3,28 @@
   "WorkspaceRootPath": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Migrations\\20251203110315_InitialCreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:EvacuationSystem.Api\\Migrations\\20251203110315_InitialCreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Migrations\\20251203110017_InitialCreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:EvacuationSystem.Api\\Migrations\\20251203110017_InitialCreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\evacuationsystem.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\evacuationsystem.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\contracts\\edges\\edgecontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\contracts\\edges\\edgecontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\evacuationsystem.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
-      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\evacuationsystem.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\contracts\\nodes\\nodecontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\contracts\\nodes\\nodecontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\contracts\\rooms\\roomcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\contracts\\rooms\\roomcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\contracts\\floors\\floorcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\contracts\\floors\\floorcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\contracts\\buildings\\buildingcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\contracts\\buildings\\buildingcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -34,7 +34,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Bookmark",
@@ -42,78 +42,78 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "20251203110315_InitialCreate.cs",
-              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Migrations\\20251203110315_InitialCreate.cs",
-              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Migrations\\20251203110315_InitialCreate.cs",
-              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Migrations\\20251203110315_InitialCreate.cs",
-              "RelativeToolTip": "EvacuationSystem.Api\\Migrations\\20251203110315_InitialCreate.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:03:16.108Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "AppDbContext.cs",
-              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Data\\AppDbContext.cs",
-              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Data\\AppDbContext.cs",
-              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Data\\AppDbContext.cs",
-              "RelativeToolTip": "EvacuationSystem.Api\\Data\\AppDbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Title": "EdgeContracts.cs",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Edges\\EdgeContracts.cs",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Contracts\\Edges\\EdgeContracts.cs",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Edges\\EdgeContracts.cs",
+              "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Edges\\EdgeContracts.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:02:33.865Z",
+              "WhenOpened": "2025-12-03T11:48:09.285Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "20251203110017_InitialCreate.cs",
-              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Migrations\\20251203110017_InitialCreate.cs",
-              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Migrations\\20251203110017_InitialCreate.cs",
-              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Migrations\\20251203110017_InitialCreate.cs",
-              "RelativeToolTip": "EvacuationSystem.Api\\Migrations\\20251203110017_InitialCreate.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Title": "NodeContracts.cs",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Nodes\\NodeContracts.cs",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Contracts\\Nodes\\NodeContracts.cs",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Nodes\\NodeContracts.cs",
+              "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Nodes\\NodeContracts.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:00:17.689Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "EvacuationSystem.Api",
-              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
-              "RelativeDocumentMoniker": "EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
-              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
-              "RelativeToolTip": "EvacuationSystem.Api\\EvacuationSystem.Api.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAXAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-12-03T10:58:42.993Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "EvacuationSystem.Api.http",
-              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.http",
-              "RelativeDocumentMoniker": "EvacuationSystem.Api\\EvacuationSystem.Api.http",
-              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.http",
-              "RelativeToolTip": "EvacuationSystem.Api\\EvacuationSystem.Api.http",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
-              "WhenOpened": "2025-12-03T10:58:32.727Z",
+              "WhenOpened": "2025-12-03T11:46:27.007Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
+              "Title": "RoomContracts.cs",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Rooms\\RoomContracts.cs",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Contracts\\Rooms\\RoomContracts.cs",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Rooms\\RoomContracts.cs",
+              "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Rooms\\RoomContracts.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T11:45:00.829Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "FloorContracts.cs",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Floors\\FloorContracts.cs",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Contracts\\Floors\\FloorContracts.cs",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Floors\\FloorContracts.cs",
+              "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Floors\\FloorContracts.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T11:36:46.199Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "BuildingContracts.cs",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Buildings\\BuildingContracts.cs",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\Contracts\\Buildings\\BuildingContracts.cs",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Contracts\\Buildings\\BuildingContracts.cs",
+              "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Buildings\\BuildingContracts.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-03T11:18:38.844Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Program.cs",
               "RelativeDocumentMoniker": "EvacuationSystem.Api\\Program.cs",
               "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Program.cs",
               "RelativeToolTip": "EvacuationSystem.Api\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABUAAAAAAAAAAAAAABUAAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-12-03T10:58:30.041Z",
               "EditorCaption": ""
