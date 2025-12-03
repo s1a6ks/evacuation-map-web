@@ -50,8 +50,7 @@
               "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Edges\\EdgeContracts.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:48:09.285Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T11:48:09.285Z"
             },
             {
               "$type": "Document",
@@ -63,8 +62,7 @@
               "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Nodes\\NodeContracts.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:46:27.007Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T11:46:27.007Z"
             },
             {
               "$type": "Document",
@@ -76,8 +74,7 @@
               "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Rooms\\RoomContracts.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:45:00.829Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T11:45:00.829Z"
             },
             {
               "$type": "Document",
@@ -89,8 +86,7 @@
               "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Floors\\FloorContracts.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:36:46.199Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T11:36:46.199Z"
             },
             {
               "$type": "Document",
@@ -102,8 +98,7 @@
               "RelativeToolTip": "EvacuationSystem.Api\\Contracts\\Buildings\\BuildingContracts.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T11:18:38.844Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-03T11:18:38.844Z"
             },
             {
               "$type": "Document",
@@ -113,7 +108,7 @@
               "RelativeDocumentMoniker": "EvacuationSystem.Api\\Program.cs",
               "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Program.cs",
               "RelativeToolTip": "EvacuationSystem.Api\\Program.cs",
-              "ViewState": "AgIAABUAAAAAAAAAAAAAABUAAAAhAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-12-03T10:58:30.041Z",
               "EditorCaption": ""

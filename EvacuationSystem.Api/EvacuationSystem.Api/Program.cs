@@ -1,12 +1,11 @@
 using EvacuationSystem.Api.Data;
 using EvacuationSystem.Api.Contracts.Buildings;
-using EvacuationSystem.Api.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 using EvacuationSystem.Api.Contracts.Floors;
-using EvacuationSystem.Api.Domain.Entities;
 using EvacuationSystem.Api.Contracts.Rooms;
 using EvacuationSystem.Api.Contracts.Nodes;
 using EvacuationSystem.Api.Contracts.Edges;
+using EvacuationSystem.Api.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,10 +30,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-//######################################################################################################
+
+// ######################################################################################################
+// BUILDINGS
+// ######################################################################################################
+
 var buildingsGroup = app.MapGroup("/api/buildings");
 
-// GET /api/buildings Ц отримати вс≥ буд≥вл≥
+// GET all buildings
 buildingsGroup.MapGet("/", async (AppDbContext db) =>
 {
     var buildings = await db.Buildings
@@ -44,7 +47,7 @@ buildingsGroup.MapGet("/", async (AppDbContext db) =>
     return Results.Ok(buildings);
 });
 
-// GET /api/buildings/{id} Ц одна буд≥вл€
+// GET building by ID
 buildingsGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
 {
     var building = await db.Buildings
@@ -52,12 +55,10 @@ buildingsGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
         .Select(b => new BuildingDto(b.Id, b.Name, b.Address))
         .FirstOrDefaultAsync();
 
-    return building is null
-        ? Results.NotFound()
-        : Results.Ok(building);
+    return building is null ? Results.NotFound() : Results.Ok(building);
 });
 
-// POST /api/buildings Ц створити буд≥влю
+// POST create building
 buildingsGroup.MapPost("/", async (CreateBuildingRequest request, AppDbContext db) =>
 {
     var building = new Building
@@ -69,40 +70,29 @@ buildingsGroup.MapPost("/", async (CreateBuildingRequest request, AppDbContext d
     db.Buildings.Add(building);
     await db.SaveChangesAsync();
 
-    var dto = new BuildingDto(building.Id, building.Name, building.Address);
-
-    return Results.Created($"/api/buildings/{building.Id}", dto);
+    return Results.Created($"/api/buildings/{building.Id}",
+        new BuildingDto(building.Id, building.Name, building.Address));
 });
 
-// PUT /api/buildings/{id} Ц оновити буд≥влю
+// PUT update building
 buildingsGroup.MapPut("/{id:int}", async (int id, UpdateBuildingRequest request, AppDbContext db) =>
 {
     var building = await db.Buildings.FindAsync(id);
-
-    if (building is null)
-    {
-        return Results.NotFound();
-    }
+    if (building is null) return Results.NotFound();
 
     building.Name = request.Name;
     building.Address = request.Address;
 
     await db.SaveChangesAsync();
 
-    var dto = new BuildingDto(building.Id, building.Name, building.Address);
-
-    return Results.Ok(dto);
+    return Results.Ok(new BuildingDto(building.Id, building.Name, building.Address));
 });
 
-// DELETE /api/buildings/{id} Ц видалити буд≥влю
+// DELETE building
 buildingsGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 {
     var building = await db.Buildings.FindAsync(id);
-
-    if (building is null)
-    {
-        return Results.NotFound();
-    }
+    if (building is null) return Results.NotFound();
 
     db.Buildings.Remove(building);
     await db.SaveChangesAsync();
@@ -110,12 +100,15 @@ buildingsGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
     return Results.NoContent();
 });
 
-//  floor
+
+// ######################################################################################################
+// FLOORS
+// ######################################################################################################
 
 var floorsGroup = app.MapGroup("/api/floors");
 
-// GET: вс≥ поверхи буд≥вл≥
-app.MapGet("/api/buildings/{buildingId:int}/floors", async (int buildingId, AppDbContext db) =>
+// GET floors of a building
+buildingsGroup.MapGet("/{buildingId:int}/floors", async (int buildingId, AppDbContext db) =>
 {
     var floors = await db.Floors
         .Where(f => f.BuildingId == buildingId)
@@ -125,12 +118,11 @@ app.MapGet("/api/buildings/{buildingId:int}/floors", async (int buildingId, AppD
     return Results.Ok(floors);
 });
 
-// POST: створити поверх у буд≥вл≥
-app.MapPost("/api/buildings/{buildingId:int}/floors", async (int buildingId, CreateFloorRequest request, AppDbContext db) =>
+// POST create floor for building
+buildingsGroup.MapPost("/{buildingId:int}/floors", async (int buildingId, CreateFloorRequest request, AppDbContext db) =>
 {
     var building = await db.Buildings.FindAsync(buildingId);
-    if (building is null)
-        return Results.NotFound($"Building {buildingId} not found");
+    if (building is null) return Results.NotFound();
 
     var floor = new Floor
     {
@@ -142,12 +134,11 @@ app.MapPost("/api/buildings/{buildingId:int}/floors", async (int buildingId, Cre
     db.Floors.Add(floor);
     await db.SaveChangesAsync();
 
-    var dto = new FloorDto(floor.Id, floor.Number, floor.Name, floor.BuildingId);
-
-    return Results.Created($"/api/floors/{floor.Id}", dto);
+    return Results.Created($"/api/floors/{floor.Id}",
+        new FloorDto(floor.Id, floor.Number, floor.Name, floor.BuildingId));
 });
 
-// GET: один поверх
+// GET floor by ID
 floorsGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
 {
     var floor = await db.Floors
@@ -158,29 +149,25 @@ floorsGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
     return floor is null ? Results.NotFound() : Results.Ok(floor);
 });
 
-// PUT: оновити поверх
+// PUT update floor
 floorsGroup.MapPut("/{id:int}", async (int id, UpdateFloorRequest request, AppDbContext db) =>
 {
     var floor = await db.Floors.FindAsync(id);
-    if (floor is null)
-        return Results.NotFound();
+    if (floor is null) return Results.NotFound();
 
     floor.Number = request.Number;
     floor.Name = request.Name;
 
     await db.SaveChangesAsync();
 
-    var dto = new FloorDto(floor.Id, floor.Number, floor.Name, floor.BuildingId);
-
-    return Results.Ok(dto);
+    return Results.Ok(new FloorDto(floor.Id, floor.Number, floor.Name, floor.BuildingId));
 });
 
-// DELETE: видалити поверх
+// DELETE floor
 floorsGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 {
     var floor = await db.Floors.FindAsync(id);
-    if (floor is null)
-        return Results.NotFound();
+    if (floor is null) return Results.NotFound();
 
     db.Floors.Remove(floor);
     await db.SaveChangesAsync();
@@ -189,12 +176,14 @@ floorsGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 });
 
 
-// ### rooms
+// ######################################################################################################
+// ROOMS
+// ######################################################################################################
 
 var roomsGroup = app.MapGroup("/api/rooms");
 
-// GET: вс≥ к≥мнати поверху
-app.MapGet("/api/floors/{floorId:int}/rooms", async (int floorId, AppDbContext db) =>
+// GET rooms of a floor
+floorsGroup.MapGet("/{floorId:int}/rooms", async (int floorId, AppDbContext db) =>
 {
     var rooms = await db.Rooms
         .Where(r => r.FloorId == floorId)
@@ -204,12 +193,11 @@ app.MapGet("/api/floors/{floorId:int}/rooms", async (int floorId, AppDbContext d
     return Results.Ok(rooms);
 });
 
-// POST: створити к≥мнату у поверху
-app.MapPost("/api/floors/{floorId:int}/rooms", async (int floorId, CreateRoomRequest request, AppDbContext db) =>
+// POST create room for floor
+floorsGroup.MapPost("/{floorId:int}/rooms", async (int floorId, CreateRoomRequest request, AppDbContext db) =>
 {
     var floor = await db.Floors.FindAsync(floorId);
-    if (floor is null)
-        return Results.NotFound($"Floor {floorId} not found");
+    if (floor is null) return Results.NotFound();
 
     var room = new Room
     {
@@ -221,12 +209,11 @@ app.MapPost("/api/floors/{floorId:int}/rooms", async (int floorId, CreateRoomReq
     db.Rooms.Add(room);
     await db.SaveChangesAsync();
 
-    var dto = new RoomDto(room.Id, room.Number, room.Type, room.FloorId);
-
-    return Results.Created($"/api/rooms/{room.Id}", dto);
+    return Results.Created($"/api/rooms/{room.Id}",
+        new RoomDto(room.Id, room.Number, room.Type, room.FloorId));
 });
 
-// GET: одна к≥мната
+// GET room
 roomsGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
 {
     var room = await db.Rooms
@@ -237,29 +224,25 @@ roomsGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
     return room is null ? Results.NotFound() : Results.Ok(room);
 });
 
-// PUT: оновити к≥мнату
+// PUT update room
 roomsGroup.MapPut("/{id:int}", async (int id, UpdateRoomRequest request, AppDbContext db) =>
 {
     var room = await db.Rooms.FindAsync(id);
-    if (room is null)
-        return Results.NotFound();
+    if (room is null) return Results.NotFound();
 
     room.Number = request.Number;
     room.Type = request.Type;
 
     await db.SaveChangesAsync();
 
-    var dto = new RoomDto(room.Id, room.Number, room.Type, room.FloorId);
-
-    return Results.Ok(dto);
+    return Results.Ok(new RoomDto(room.Id, room.Number, room.Type, room.FloorId));
 });
 
-// DELETE: видалити к≥мнату
+// DELETE room
 roomsGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 {
     var room = await db.Rooms.FindAsync(id);
-    if (room is null)
-        return Results.NotFound();
+    if (room is null) return Results.NotFound();
 
     db.Rooms.Remove(room);
     await db.SaveChangesAsync();
@@ -267,29 +250,29 @@ roomsGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
     return Results.NoContent();
 });
 
-// Nodes
+
+// ######################################################################################################
+// NODES
+// ######################################################################################################
 
 var nodesGroup = app.MapGroup("/api/nodes");
 
-// GET: вс≥ вузли поверху
-app.MapGet("/api/floors/{floorId:int}/nodes", async (int floorId, AppDbContext db) =>
+// GET nodes of floor
+floorsGroup.MapGet("/{floorId:int}/nodes", async (int floorId, AppDbContext db) =>
 {
     var nodes = await db.Nodes
         .Where(n => n.FloorId == floorId)
-        .Select(n => new NodeDto(
-            n.Id, n.X, n.Y, n.IsExit, n.IsStair, n.FloorId, n.RoomId
-        ))
+        .Select(n => new NodeDto(n.Id, n.X, n.Y, n.IsExit, n.IsStair, n.FloorId, n.RoomId))
         .ToListAsync();
 
     return Results.Ok(nodes);
 });
 
-// POST: створити вузол у поверху
-app.MapPost("/api/floors/{floorId:int}/nodes", async (int floorId, CreateNodeRequest request, AppDbContext db) =>
+// POST create node for floor
+floorsGroup.MapPost("/{floorId:int}/nodes", async (int floorId, CreateNodeRequest request, AppDbContext db) =>
 {
     var floor = await db.Floors.FindAsync(floorId);
-    if (floor is null)
-        return Results.NotFound($"Floor {floorId} not found");
+    if (floor is null) return Results.NotFound();
 
     var node = new Node
     {
@@ -304,30 +287,26 @@ app.MapPost("/api/floors/{floorId:int}/nodes", async (int floorId, CreateNodeReq
     db.Nodes.Add(node);
     await db.SaveChangesAsync();
 
-    var dto = new NodeDto(node.Id, node.X, node.Y, node.IsExit, node.IsStair, node.FloorId, node.RoomId);
-
-    return Results.Created($"/api/nodes/{node.Id}", dto);
+    return Results.Created($"/api/nodes/{node.Id}",
+        new NodeDto(node.Id, node.X, node.Y, node.IsExit, node.IsStair, node.FloorId, node.RoomId));
 });
 
-// GET: один вузол
+// GET node
 nodesGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
 {
     var node = await db.Nodes
         .Where(n => n.Id == id)
-        .Select(n => new NodeDto(
-            n.Id, n.X, n.Y, n.IsExit, n.IsStair, n.FloorId, n.RoomId
-        ))
+        .Select(n => new NodeDto(n.Id, n.X, n.Y, n.IsExit, n.IsStair, n.FloorId, n.RoomId))
         .FirstOrDefaultAsync();
 
     return node is null ? Results.NotFound() : Results.Ok(node);
 });
 
-// PUT: оновити вузол
+// PUT update node
 nodesGroup.MapPut("/{id:int}", async (int id, UpdateNodeRequest request, AppDbContext db) =>
 {
     var node = await db.Nodes.FindAsync(id);
-    if (node is null)
-        return Results.NotFound();
+    if (node is null) return Results.NotFound();
 
     node.X = request.X;
     node.Y = request.Y;
@@ -337,17 +316,14 @@ nodesGroup.MapPut("/{id:int}", async (int id, UpdateNodeRequest request, AppDbCo
 
     await db.SaveChangesAsync();
 
-    var dto = new NodeDto(node.Id, node.X, node.Y, node.IsExit, node.IsStair, node.FloorId, node.RoomId);
-
-    return Results.Ok(dto);
+    return Results.Ok(new NodeDto(node.Id, node.X, node.Y, node.IsExit, node.IsStair, node.FloorId, node.RoomId));
 });
 
-// DELETE: видалити вузол
+// DELETE node
 nodesGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 {
     var node = await db.Nodes.FindAsync(id);
-    if (node is null)
-        return Results.NotFound();
+    if (node is null) return Results.NotFound();
 
     db.Nodes.Remove(node);
     await db.SaveChangesAsync();
@@ -355,27 +331,27 @@ nodesGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
     return Results.NoContent();
 });
 
-// Edges
+
+// ######################################################################################################
+// EDGES
+// ######################################################################################################
 
 var edgesGroup = app.MapGroup("/api/edges");
 
-// GET: вс≥ ребра певного вузла (опц≥онально)
-app.MapGet("/api/nodes/{nodeId:int}/edges", async (int nodeId, AppDbContext db) =>
+// GET edges of node
+nodesGroup.MapGet("/{nodeId:int}/edges", async (int nodeId, AppDbContext db) =>
 {
     var edges = await db.Edges
         .Where(e => e.FromNodeId == nodeId)
-        .Select(e => new EdgeDto(
-            e.Id, e.FromNodeId, e.ToNodeId, e.Length, e.Cost, e.IsBlocked
-        ))
+        .Select(e => new EdgeDto(e.Id, e.FromNodeId, e.ToNodeId, e.Length, e.Cost, e.IsBlocked))
         .ToListAsync();
 
     return Results.Ok(edges);
 });
 
-// POST: створити ребро
-app.MapPost("/", async (CreateEdgeRequest request, AppDbContext db) =>
+// POST create edge
+edgesGroup.MapPost("/", async (CreateEdgeRequest request, AppDbContext db) =>
 {
-    // ѕерев≥рку вузл≥в теж треба виконувати
     var fromNode = await db.Nodes.FindAsync(request.FromNodeId);
     var toNode = await db.Nodes.FindAsync(request.ToNodeId);
 
@@ -394,30 +370,26 @@ app.MapPost("/", async (CreateEdgeRequest request, AppDbContext db) =>
     db.Edges.Add(edge);
     await db.SaveChangesAsync();
 
-    var dto = new EdgeDto(edge.Id, edge.FromNodeId, edge.ToNodeId, edge.Length, edge.Cost, edge.IsBlocked);
-
-    return Results.Created($"/api/edges/{edge.Id}", dto);
+    return Results.Created($"/api/edges/{edge.Id}",
+        new EdgeDto(edge.Id, edge.FromNodeId, edge.ToNodeId, edge.Length, edge.Cost, edge.IsBlocked));
 });
 
-// GET: одне ребро
+// GET edge
 edgesGroup.MapGet("/{id:int}", async (int id, AppDbContext db) =>
 {
     var edge = await db.Edges
         .Where(e => e.Id == id)
-        .Select(e => new EdgeDto(
-            e.Id, e.FromNodeId, e.ToNodeId, e.Length, e.Cost, e.IsBlocked
-        ))
+        .Select(e => new EdgeDto(e.Id, e.FromNodeId, e.ToNodeId, e.Length, e.Cost, e.IsBlocked))
         .FirstOrDefaultAsync();
 
     return edge is null ? Results.NotFound() : Results.Ok(edge);
 });
 
-// PUT: оновити ребро
+// PUT update edge
 edgesGroup.MapPut("/{id:int}", async (int id, UpdateEdgeRequest request, AppDbContext db) =>
 {
     var edge = await db.Edges.FindAsync(id);
-    if (edge is null)
-        return Results.NotFound();
+    if (edge is null) return Results.NotFound();
 
     edge.Length = request.Length;
     edge.Cost = request.Cost;
@@ -425,17 +397,14 @@ edgesGroup.MapPut("/{id:int}", async (int id, UpdateEdgeRequest request, AppDbCo
 
     await db.SaveChangesAsync();
 
-    var dto = new EdgeDto(edge.Id, edge.FromNodeId, edge.ToNodeId, edge.Length, edge.Cost, edge.IsBlocked);
-
-    return Results.Ok(dto);
+    return Results.Ok(new EdgeDto(edge.Id, edge.FromNodeId, edge.ToNodeId, edge.Length, edge.Cost, edge.IsBlocked));
 });
 
-// DELETE: видалити ребро
+// DELETE edge
 edgesGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 {
     var edge = await db.Edges.FindAsync(id);
-    if (edge is null)
-        return Results.NotFound();
+    if (edge is null) return Results.NotFound();
 
     db.Edges.Remove(edge);
     await db.SaveChangesAsync();
@@ -444,7 +413,6 @@ edgesGroup.MapDelete("/{id:int}", async (int id, AppDbContext db) =>
 });
 
 
-
-//######################################################################################################
+// ######################################################################################################
 
 app.Run();
