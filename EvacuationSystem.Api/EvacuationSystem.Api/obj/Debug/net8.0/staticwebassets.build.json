@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "cgTOj2C0scHGNp1R8NeqAsY/9Y061HV+vtJ5ePoCn7w=",
+  "Hash": "FCg4uYjN9IJezk5J09TA3wu+zaNHB3XFi34kq1N/qRU=",
   "Source": "EvacuationSystem.Api",
   "BasePath": "_content/EvacuationSystem.Api",
   "Mode": "Default",
@@ -15,111 +15,6 @@
       "Pattern": "**"
     }
   ],
-  "Assets": [
-    {
-      "Identity": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\wwwroot\\index.html",
-      "SourceId": "EvacuationSystem.Api",
-      "SourceType": "Discovered",
-      "ContentRoot": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\wwwroot\\",
-      "BasePath": "_content/EvacuationSystem.Api",
-      "RelativePath": "index#[.{fingerprint}]?.html",
-      "AssetKind": "All",
-      "AssetMode": "All",
-      "AssetRole": "Primary",
-      "AssetMergeBehavior": "",
-      "AssetMergeSource": "",
-      "RelatedAsset": "",
-      "AssetTraitName": "",
-      "AssetTraitValue": "",
-      "Fingerprint": "vayxtz48mb",
-      "Integrity": "5xQkDK36xsZ9JqbYFYWo4kdHnVJcfre0P74j5F6D06U=",
-      "CopyToOutputDirectory": "Never",
-      "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "wwwroot\\index.html"
-    }
-  ],
-  "Endpoints": [
-    {
-      "Route": "index.html",
-      "AssetFile": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\wwwroot\\index.html",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "28799"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "text/html"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"5xQkDK36xsZ9JqbYFYWo4kdHnVJcfre0P74j5F6D06U=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Wed, 03 Dec 2025 17:02:33 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "no-cache"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "integrity",
-          "Value": "sha256-5xQkDK36xsZ9JqbYFYWo4kdHnVJcfre0P74j5F6D06U="
-        }
-      ]
-    },
-    {
-      "Route": "index.vayxtz48mb.html",
-      "AssetFile": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\wwwroot\\index.html",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "28799"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "text/html"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"5xQkDK36xsZ9JqbYFYWo4kdHnVJcfre0P74j5F6D06U=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Wed, 03 Dec 2025 17:02:33 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "max-age=31536000, immutable"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "fingerprint",
-          "Value": "vayxtz48mb"
-        },
-        {
-          "Name": "label",
-          "Value": "index.html"
-        },
-        {
-          "Name": "integrity",
-          "Value": "sha256-5xQkDK36xsZ9JqbYFYWo4kdHnVJcfre0P74j5F6D06U="
-        }
-      ]
-    }
-  ]
+  "Assets": [],
+  "Endpoints": []
 }

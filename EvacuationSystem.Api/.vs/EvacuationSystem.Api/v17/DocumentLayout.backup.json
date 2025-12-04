@@ -5,10 +5,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,24 +14,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "index.html",
-              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\wwwroot\\index.html",
-              "RelativeDocumentMoniker": "EvacuationSystem.Api\\wwwroot\\index.html",
-              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\wwwroot\\index.html",
-              "RelativeToolTip": "EvacuationSystem.Api\\wwwroot\\index.html",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-12-03T17:00:52.444Z",
-              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -45,7 +28,7 @@
               "RelativeDocumentMoniker": "EvacuationSystem.Api\\Program.cs",
               "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Program.cs",
               "RelativeToolTip": "EvacuationSystem.Api\\Program.cs",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAAACYAAAAXAAAAAAAAAA==",
+              "ViewState": "AgIAABUAAAAAAAAAAAAAABsAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-12-03T10:58:30.041Z",
               "EditorCaption": ""

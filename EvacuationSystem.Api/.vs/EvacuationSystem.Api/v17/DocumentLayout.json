@@ -5,6 +5,14 @@
     {
       "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\evacuationsystem.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\evacuationsystem.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|c:\\evacuation\\evacuation-map-web\\evacuationsystem.api\\evacuationsystem.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{E0C97487-E161-4102-BB80-1FF2F5A75A62}|EvacuationSystem.Api\\EvacuationSystem.Api.csproj|solutionrelative:evacuationsystem.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,11 +22,37 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "EvacuationSystem.Api.http",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.http",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\EvacuationSystem.Api.http",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\EvacuationSystem.Api.http",
+              "RelativeToolTip": "EvacuationSystem.Api\\EvacuationSystem.Api.http",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
+              "WhenOpened": "2025-12-04T10:29:25.708Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\appsettings.json",
+              "RelativeDocumentMoniker": "EvacuationSystem.Api\\appsettings.json",
+              "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\appsettings.json",
+              "RelativeToolTip": "EvacuationSystem.Api\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-12-04T10:29:24.756Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -28,7 +62,7 @@
               "RelativeDocumentMoniker": "EvacuationSystem.Api\\Program.cs",
               "ToolTip": "C:\\evacuation\\evacuation-map-web\\EvacuationSystem.Api\\EvacuationSystem.Api\\Program.cs",
               "RelativeToolTip": "EvacuationSystem.Api\\Program.cs",
-              "ViewState": "AgIAACEAAAAAAAAAAAAAABIAAAAMAAAAAAAAAA==",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAABsAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-12-03T10:58:30.041Z",
               "EditorCaption": ""
