@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EvacuationSystem.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b9bc27e159f9143b7801a704a37d450ebe56efbd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6e56d6129fbc654e4fa04747cd4626a1a65ac12a")]
 [assembly: System.Reflection.AssemblyProductAttribute("EvacuationSystem.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EvacuationSystem.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

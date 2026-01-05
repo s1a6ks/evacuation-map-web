@@ -1,7 +1,7 @@
 [
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_1",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_2",
     "RelativePath": "api/buildings/",
     "HttpMethod": "GET",
     "IsController": false,
@@ -17,7 +17,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_3",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_4",
     "RelativePath": "api/buildings/",
     "HttpMethod": "POST",
     "IsController": false,
@@ -39,7 +39,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_6",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_7",
     "RelativePath": "api/buildings/{buildingId:int}/floors",
     "HttpMethod": "GET",
     "IsController": false,
@@ -61,7 +61,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_7",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_8",
     "RelativePath": "api/buildings/{buildingId:int}/floors",
     "HttpMethod": "POST",
     "IsController": false,
@@ -88,7 +88,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_2",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_3",
     "RelativePath": "api/buildings/{id:int}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -110,7 +110,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_4",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_5",
     "RelativePath": "api/buildings/{id:int}",
     "HttpMethod": "PUT",
     "IsController": false,
@@ -137,7 +137,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_5",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_6",
     "RelativePath": "api/buildings/{id:int}",
     "HttpMethod": "DELETE",
     "IsController": false,
@@ -159,7 +159,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_22",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_23",
     "RelativePath": "api/edges/",
     "HttpMethod": "POST",
     "IsController": false,
@@ -181,7 +181,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_23",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_24",
     "RelativePath": "api/edges/{id:int}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -203,7 +203,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_24",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_25",
     "RelativePath": "api/edges/{id:int}",
     "HttpMethod": "PUT",
     "IsController": false,
@@ -230,7 +230,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_25",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_26",
     "RelativePath": "api/edges/{id:int}",
     "HttpMethod": "DELETE",
     "IsController": false,
@@ -252,7 +252,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_16",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_17",
     "RelativePath": "api/floors/{floorId:int}/nodes",
     "HttpMethod": "GET",
     "IsController": false,
@@ -274,7 +274,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_17",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_18",
     "RelativePath": "api/floors/{floorId:int}/nodes",
     "HttpMethod": "POST",
     "IsController": false,
@@ -301,7 +301,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_11",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_12",
     "RelativePath": "api/floors/{floorId:int}/rooms",
     "HttpMethod": "GET",
     "IsController": false,
@@ -323,7 +323,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_12",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_13",
     "RelativePath": "api/floors/{floorId:int}/rooms",
     "HttpMethod": "POST",
     "IsController": false,
@@ -350,7 +350,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_8",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_9",
     "RelativePath": "api/floors/{id:int}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -372,7 +372,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_9",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_10",
     "RelativePath": "api/floors/{id:int}",
     "HttpMethod": "PUT",
     "IsController": false,
@@ -399,7 +399,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_10",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_11",
     "RelativePath": "api/floors/{id:int}",
     "HttpMethod": "DELETE",
     "IsController": false,
@@ -421,7 +421,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_29",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_30",
     "RelativePath": "api/maps/floor/{floorId:int}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -443,7 +443,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_30",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_31",
     "RelativePath": "api/maps/floor/{floorId:int}/validate",
     "HttpMethod": "GET",
     "IsController": false,
@@ -465,7 +465,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_26",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_27",
     "RelativePath": "api/navigation/path",
     "HttpMethod": "GET",
     "IsController": false,
@@ -497,7 +497,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_28",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_29",
     "RelativePath": "api/navigation/room-to-exit",
     "HttpMethod": "GET",
     "IsController": false,
@@ -524,7 +524,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_31",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_32",
     "RelativePath": "api/navigation/room-to-exit-multi",
     "HttpMethod": "GET",
     "IsController": false,
@@ -551,7 +551,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_27",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_28",
     "RelativePath": "api/navigation/room-to-room",
     "HttpMethod": "GET",
     "IsController": false,
@@ -583,7 +583,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_18",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_19",
     "RelativePath": "api/nodes/{id:int}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -605,7 +605,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_19",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_20",
     "RelativePath": "api/nodes/{id:int}",
     "HttpMethod": "PUT",
     "IsController": false,
@@ -632,7 +632,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_20",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_21",
     "RelativePath": "api/nodes/{id:int}",
     "HttpMethod": "DELETE",
     "IsController": false,
@@ -654,7 +654,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_21",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_22",
     "RelativePath": "api/nodes/{nodeId:int}/edges",
     "HttpMethod": "GET",
     "IsController": false,
@@ -676,7 +676,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_13",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_14",
     "RelativePath": "api/rooms/{id:int}",
     "HttpMethod": "GET",
     "IsController": false,
@@ -698,7 +698,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_14",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_15",
     "RelativePath": "api/rooms/{id:int}",
     "HttpMethod": "PUT",
     "IsController": false,
@@ -725,7 +725,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_15",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_16",
     "RelativePath": "api/rooms/{id:int}",
     "HttpMethod": "DELETE",
     "IsController": false,
@@ -747,7 +747,7 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_32",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_33",
     "RelativePath": "api/simulation/run",
     "HttpMethod": "POST",
     "IsController": false,

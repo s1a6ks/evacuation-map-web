@@ -23,7 +23,18 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
+
 // Services
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddScoped<INavigationService, NavigationService>();
 builder.Services.AddScoped<ISimulationService, SimulationService>();
 
@@ -32,6 +43,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
