@@ -1,1 +1,0 @@
-C:\evacuation\evacuation-map-web\EvacuationSystem.Api\EvacuationSystem.Api\wwwroot\index.html

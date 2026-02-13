@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using EvacuationSystem.Api.Data;
+﻿using EvacuationSystem.Api.Data;
 using EvacuationSystem.Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +13,14 @@ public class NavigationService : INavigationService
         _dbContext = dbContext;
     }
 
+    // ── 1. Централізована формула ваги ребра ──────────────────────
+    // Weight = Length × Cost
+    // Cost = 1.0 — звичайний прохід
+    // Cost > 1.0 — складніший прохід (сходи, вузький коридор тощо)
+    private static double GetEdgeWeight(Edge edge)
+        => edge.Length * edge.Cost;
+
+    // ── Публічний метод пошуку шляху ──────────────────────────────
     public async Task<NavigationResult?> FindPathAsync(int fromNodeId, int toNodeId, NavigationAlgorithm algorithm)
     {
         var nodes = await _dbContext.Nodes.AsNoTracking().ToListAsync();
@@ -30,45 +35,61 @@ public class NavigationService : INavigationService
         if (fromNode is null || toNode is null)
             return null;
 
+        // ── 4. Dictionary для O(1) пошуку вузла по Id ─────────────
+        var nodeMap = nodes.ToDictionary(n => n.Id);
+
+        // ── 2. Неорієнтований граф ─────────────────────────────────
         var adjacency = BuildAdjacency(edges);
 
         return algorithm switch
         {
-            NavigationAlgorithm.Dijkstra => RunDijkstra(fromNode, toNode, adjacency, nodes),
-            NavigationAlgorithm.AStar => RunAStar(fromNode, toNode, adjacency, nodes),
-            _ => RunAStar(fromNode, toNode, adjacency, nodes)
+            NavigationAlgorithm.Dijkstra => RunDijkstra(fromNode, toNode, adjacency, nodeMap, edges),
+            NavigationAlgorithm.AStar => RunAStar(fromNode, toNode, adjacency, nodeMap, edges),
+            _ => RunAStar(fromNode, toNode, adjacency, nodeMap, edges)
         };
     }
 
+    // ── 2. Побудова списку суміжності (неорієнтований граф) ───────
     private static Dictionary<int, List<Edge>> BuildAdjacency(IEnumerable<Edge> edges)
     {
         var adjacency = new Dictionary<int, List<Edge>>();
 
         foreach (var edge in edges)
         {
-            if (!adjacency.TryGetValue(edge.FromNodeId, out var list))
-            {
-                list = new List<Edge>();
-                adjacency[edge.FromNodeId] = list;
-            }
+            // Пряме ребро A → B
+            if (!adjacency.TryGetValue(edge.FromNodeId, out var fwd))
+                adjacency[edge.FromNodeId] = fwd = new List<Edge>();
+            fwd.Add(edge);
 
-            list.Add(edge);
+            // Зворотне ребро B → A (граф неорієнтований)
+            if (!adjacency.TryGetValue(edge.ToNodeId, out var rev))
+                adjacency[edge.ToNodeId] = rev = new List<Edge>();
+
+            rev.Add(new Edge
+            {
+                Id = edge.Id,
+                FromNodeId = edge.ToNodeId,
+                ToNodeId = edge.FromNodeId,
+                Length = edge.Length,
+                Cost = edge.Cost,
+                IsBlocked = edge.IsBlocked
+            });
         }
 
         return adjacency;
     }
 
-    private NavigationResult? RunDijkstra(Node start, Node goal, Dictionary<int, List<Edge>> adjacency, List<Node> allNodes)
+    // ── Dijkstra ──────────────────────────────────────────────────
+    private NavigationResult? RunDijkstra(
+        Node start,
+        Node goal,
+        Dictionary<int, List<Edge>> adjacency,
+        Dictionary<int, Node> nodeMap,
+        List<Edge> allEdges)
     {
-        var dist = new Dictionary<int, double>();
-        var prev = new Dictionary<int, int?>();
+        var dist = nodeMap.Keys.ToDictionary(id => id, _ => double.PositiveInfinity);
+        var prev = nodeMap.Keys.ToDictionary(id => id, _ => (int?)null);
         var visited = new HashSet<int>();
-
-        foreach (var n in allNodes)
-        {
-            dist[n.Id] = double.PositiveInfinity;
-            prev[n.Id] = null;
-        }
 
         dist[start.Id] = 0;
 
@@ -77,24 +98,20 @@ public class NavigationService : INavigationService
 
         while (pq.TryDequeue(out var currentId, out _))
         {
-            if (visited.Contains(currentId))
-                continue;
-
-            visited.Add(currentId);
+            if (!visited.Add(currentId)) continue;
 
             if (currentId == goal.Id)
-                return BuildResult(prev, dist[goal.Id], start, goal, allNodes);
+                return BuildResult(prev, dist[goal.Id], start, goal, nodeMap, allEdges);
 
-            if (!adjacency.TryGetValue(currentId, out var neighbors))
-                continue;
+            if (!adjacency.TryGetValue(currentId, out var neighbors)) continue;
 
             foreach (var edge in neighbors)
             {
                 var neighborId = edge.ToNodeId;
-                if (visited.Contains(neighborId))
-                    continue;
+                if (visited.Contains(neighborId)) continue;
 
-                var tentative = dist[currentId] + edge.Cost;
+                // ── 1. Використовуємо GetEdgeWeight ───────────────
+                var tentative = dist[currentId] + GetEdgeWeight(edge);
 
                 if (tentative < dist[neighborId])
                 {
@@ -108,45 +125,43 @@ public class NavigationService : INavigationService
         return null;
     }
 
-    private NavigationResult? RunAStar(Node start, Node goal, Dictionary<int, List<Edge>> adjacency, List<Node> allNodes)
+    // ── A* ────────────────────────────────────────────────────────
+    private NavigationResult? RunAStar(
+        Node start,
+        Node goal,
+        Dictionary<int, List<Edge>> adjacency,
+        Dictionary<int, Node> nodeMap,
+        List<Edge> allEdges)
     {
-        var gScore = new Dictionary<int, double>();
-        var fScore = new Dictionary<int, double>();
-        var cameFrom = new Dictionary<int, int?>();
-
-        foreach (var n in allNodes)
-        {
-            gScore[n.Id] = double.PositiveInfinity;
-            fScore[n.Id] = double.PositiveInfinity;
-            cameFrom[n.Id] = null;
-        }
+        var gScore = nodeMap.Keys.ToDictionary(id => id, _ => double.PositiveInfinity);
+        var fScore = nodeMap.Keys.ToDictionary(id => id, _ => double.PositiveInfinity);
+        var cameFrom = nodeMap.Keys.ToDictionary(id => id, _ => (int?)null);
 
         gScore[start.Id] = 0;
         fScore[start.Id] = Heuristic(start, goal);
 
         var openSet = new PriorityQueue<int, double>();
-        openSet.Enqueue(start.Id, fScore[start.Id]);
-
         var openSetIds = new HashSet<int> { start.Id };
+        openSet.Enqueue(start.Id, fScore[start.Id]);
 
         while (openSet.TryDequeue(out var currentId, out _))
         {
             openSetIds.Remove(currentId);
 
             if (currentId == goal.Id)
-                return BuildResult(cameFrom, gScore[goal.Id], start, goal, allNodes);
+                return BuildResult(cameFrom, gScore[goal.Id], start, goal, nodeMap, allEdges);
 
-            if (!adjacency.TryGetValue(currentId, out var neighbors))
-                continue;
+            if (!adjacency.TryGetValue(currentId, out var neighbors)) continue;
 
             foreach (var edge in neighbors)
             {
                 var neighborId = edge.ToNodeId;
 
-                var neighborNode = allNodes.First(n => n.Id == neighborId);
-                var currentNode = allNodes.First(n => n.Id == currentId);
+                // ── 4. O(1) через nodeMap ──────────────────────────
+                if (!nodeMap.TryGetValue(neighborId, out var neighborNode)) continue;
 
-                var tentativeG = gScore[currentId] + edge.Cost;
+                // ── 1. Використовуємо GetEdgeWeight ───────────────
+                var tentativeG = gScore[currentId] + GetEdgeWeight(edge);
 
                 if (tentativeG < gScore[neighborId])
                 {
@@ -166,6 +181,7 @@ public class NavigationService : INavigationService
         return null;
     }
 
+    // ── Евклідова евристика ───────────────────────────────────────
     private static double Heuristic(Node a, Node b)
     {
         var dx = a.X - b.X;
@@ -173,13 +189,16 @@ public class NavigationService : INavigationService
         return Math.Sqrt(dx * dx + dy * dy);
     }
 
-    private NavigationResult BuildResult(
+    // ── 3. BuildResult — без звернень до DbContext ────────────────
+    private static NavigationResult BuildResult(
         Dictionary<int, int?> prev,
         double totalCost,
         Node start,
         Node goal,
-        List<Node> allNodes)
+        Dictionary<int, Node> nodeMap,
+        List<Edge> allEdges)
     {
+        // Відновлюємо шлях
         var pathIds = new List<int>();
         var currentId = goal.Id;
 
@@ -187,40 +206,31 @@ public class NavigationService : INavigationService
         {
             pathIds.Add(currentId);
             var p = prev[currentId];
-            if (p is null)
-                break;
+            if (p is null) break;
             currentId = p.Value;
         }
-
         pathIds.Add(start.Id);
         pathIds.Reverse();
 
-        var nodesInPath = allNodes
-            .Where(n => pathIds.Contains(n.Id))
-            .OrderBy(n => pathIds.IndexOf(n.Id))
+        var nodesInPath = pathIds
+            .Where(nodeMap.ContainsKey)
+            .Select(id => nodeMap[id])
             .ToList();
 
-        // довжину рахуємо за Length ребер, якщо є, або по евклідовій відстані
+        // Рахуємо TotalLength по edges у пам'яті — без DbContext
         double totalLength = 0;
         for (int i = 0; i < nodesInPath.Count - 1; i++)
         {
             var fromId = nodesInPath[i].Id;
             var toId = nodesInPath[i + 1].Id;
 
-            var edge = _dbContext.Edges
-                .AsNoTracking()
-                .FirstOrDefault(e => e.FromNodeId == fromId && e.ToNodeId == toId && !e.IsBlocked);
+            var edge = allEdges.FirstOrDefault(e =>
+                (e.FromNodeId == fromId && e.ToNodeId == toId) ||
+                (e.FromNodeId == toId && e.ToNodeId == fromId));
 
-            if (edge is not null)
-            {
-                totalLength += edge.Length;
-            }
-            else
-            {
-                var a = nodesInPath[i];
-                var b = nodesInPath[i + 1];
-                totalLength += Heuristic(a, b);
-            }
+            totalLength += edge is not null
+                ? edge.Length
+                : Heuristic(nodesInPath[i], nodesInPath[i + 1]);
         }
 
         return new NavigationResult
