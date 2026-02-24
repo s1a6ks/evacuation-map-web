@@ -1,19 +1,12 @@
-import TopBar from './components/Layout/TopBar'
-import Toolbar from './components/Toolbar/Toolbar'
-import FloorCanvas from './components/Canvas/FloorCanvas'
-import RightPanel from './components/Panel/RightPanel'
-import StatusBar from './components/Layout/StatusBar'
+import { Routes, Route } from 'react-router-dom'
+import Dashboard from './pages/Dashboard'
+import Editor from './pages/Editor'
 
 export default function App() {
   return (
-    <div className="flex flex-col h-screen bg-white text-[#1a1a1a] overflow-hidden">
-      <TopBar />
-      <div className="flex flex-1 overflow-hidden">
-        <Toolbar />
-        <FloorCanvas />
-        <RightPanel />
-      </div>
-      <StatusBar />
-    </div>
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/plan/:planId" element={<Editor />} />
+    </Routes>
   )
 }
