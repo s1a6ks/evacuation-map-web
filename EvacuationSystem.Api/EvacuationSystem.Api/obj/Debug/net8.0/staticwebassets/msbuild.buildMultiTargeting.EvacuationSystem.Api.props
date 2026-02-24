@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\EvacuationSystem.Api.props" />
-</Project>

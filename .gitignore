@@ -33,3 +33,17 @@ artifacts/
 coverage/
 *.coverage
 *.coveragexml
+
+
+# .NET build artifacts
+EvacuationSystem.Api/**/.vs/
+EvacuationSystem.Api/**/bin/
+EvacuationSystem.Api/**/obj/
+EvacuationSystem.Api/**/*.db
+EvacuationSystem.Api/**/*.db-shm
+EvacuationSystem.Api/**/*.db-wal
+
+# Node
+evacuation-frontend/node_modules/
+evacuation-frontend/dist/
+evacuation-frontend/.env
