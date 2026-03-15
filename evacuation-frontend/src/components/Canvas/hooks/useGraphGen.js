@@ -192,23 +192,12 @@ export function generateGraph(detectedRooms, doors, exits, stairs) {
     return edges.filter(e => e.from === nodeId || e.to === nodeId).length
   }
 
+  // Fallback лише для повністю ізольованих транзитних вузлів —
+  // з'єднуємо тільки з найближчим room-centroid (не з іншими door/exit через стіну)
+  const roomNodeValues = [...roomNodeMap.values()]
   allTransitNodes.forEach(node => {
     if (getEdgeCount(node.id) === 0) {
-      const nearest = nearestNode(
-        nodes.filter(n => n.id !== node.id),
-        node.x, node.y, 300
-      )
-      if (nearest) addEdge(node.id, nearest.id)
-    }
-  })
-
-  allTransitNodes.forEach(node => {
-    if (getEdgeCount(node.id) === 1) {
-      const connected = getConnectedIds(node.id)
-      const candidates = allTransitNodes.filter(n =>
-        n.id !== node.id && !connected.has(n.id)
-      )
-      const nearest = nearestNode(candidates, node.x, node.y, 300)
+      const nearest = nearestNode(roomNodeValues, node.x, node.y, 200)
       if (nearest) addEdge(node.id, nearest.id)
     }
   })

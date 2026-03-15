@@ -67,13 +67,12 @@ export default function useKeyboardShortcuts() {
       if (mode !== 'constructor') return
 
       const toolMap = {
-        '1': 'wall',  'w': 'wall',  'W': 'wall',  'ц': 'wall',  'Ц': 'wall',
-        '2': 'door',  'd': 'door',  'D': 'door',  'в': 'door',  'В': 'door',
-        '3': 'exit',  'e': 'exit',  'E': 'exit',  'у': 'exit',  'У': 'exit',
+        '1': 'wall', 'w': 'wall', 'W': 'wall', 'ц': 'wall', 'Ц': 'wall',
+        '2': 'door', 'd': 'door', 'D': 'door', 'в': 'door', 'В': 'door',
+        '3': 'exit', 'e': 'exit', 'E': 'exit', 'у': 'exit', 'У': 'exit',
         '4': 'stair', 's': 'stair', 'S': 'stair', 'і': 'stair', 'І': 'stair',
         '5': 'erase', 'x': 'erase', 'X': 'erase', 'ч': 'erase', 'Ч': 'erase',
-        '6': 'extinguisher', 'f': 'extinguisher', 'F': 'extinguisher', 'а': 'extinguisher', 'А': 'extinguisher',
-        'v': 'select','V': 'select','м': 'select', 'М': 'select',
+        'v': 'select', 'V': 'select', 'м': 'select', 'М': 'select',
       }
 
       if (toolMap[e.key]) {

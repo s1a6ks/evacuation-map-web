@@ -3,6 +3,12 @@ import useStore from '../../../store/useStore'
 const GRID = 20
 const METER = 0.5
 
+// Палітра кольорів для мульти-режиму (декілька / всі)
+const MULTI_COLORS = [
+  '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899',
+  '#06b6d4', '#84cc16', '#f97316', '#14b8a6',
+]
+
 // Modern room palette (advanced mode)
 const ROOM_FILLS = [
   'rgba(59,130,246,0.07)',
@@ -54,14 +60,14 @@ function drawFloorChangeBadge(ctx, node, invScale, color) {
 
   ctx.fillStyle = '#f5c542'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * invScale
   ctx.beginPath()
-  ctx.moveTo(x - bw/2 + R, y - bh/2); ctx.lineTo(x + bw/2 - R, y - bh/2)
-  ctx.arcTo(x + bw/2, y - bh/2, x + bw/2, y - bh/2 + R, R)
-  ctx.lineTo(x + bw/2, y + bh/2 - R)
-  ctx.arcTo(x + bw/2, y + bh/2, x + bw/2 - R, y + bh/2, R)
-  ctx.lineTo(x - bw/2 + R, y + bh/2)
-  ctx.arcTo(x - bw/2, y + bh/2, x - bw/2, y + bh/2 - R, R)
-  ctx.lineTo(x - bw/2, y - bh/2 + R)
-  ctx.arcTo(x - bw/2, y - bh/2, x - bw/2 + R, y - bh/2, R)
+  ctx.moveTo(x - bw / 2 + R, y - bh / 2); ctx.lineTo(x + bw / 2 - R, y - bh / 2)
+  ctx.arcTo(x + bw / 2, y - bh / 2, x + bw / 2, y - bh / 2 + R, R)
+  ctx.lineTo(x + bw / 2, y + bh / 2 - R)
+  ctx.arcTo(x + bw / 2, y + bh / 2, x + bw / 2 - R, y + bh / 2, R)
+  ctx.lineTo(x - bw / 2 + R, y + bh / 2)
+  ctx.arcTo(x - bw / 2, y + bh / 2, x - bw / 2, y + bh / 2 - R, R)
+  ctx.lineTo(x - bw / 2, y - bh / 2 + R)
+  ctx.arcTo(x - bw / 2, y - bh / 2, x - bw / 2 + R, y - bh / 2, R)
   ctx.closePath(); ctx.fill(); ctx.stroke()
 
   ctx.fillStyle = '#1a1a1a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
@@ -102,7 +108,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     const a = path[i], b = path[i + 1]
     segments.push({
       from: (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
-      to:   (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
+      to: (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
     })
   }
 
@@ -164,6 +170,7 @@ export default function useRender(canvasRef) {
     detectedRooms, graphNodes, graphEdges,
     currentPath, multiFloorPath, allPaths, evacuationView, tool, selectedRoomId, viewMode,
     mode, currentFloorId, blockedExits, blockedDoors,
+    multiRoomPaths, showEdgeWeights, selectedRoomIds,
   } = useStore()
 
   const render = (drawing, drawStart, mousePos, scale = 1, offset = { x: 0, y: 0 }) => {
@@ -246,14 +253,15 @@ export default function useRender(canvasRef) {
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
         ctx.setLineDash([])
 
-        if (onPath) {
+        // Ваги ребер: завжди для onPath, або для всіх якщо showEdgeWeights
+        if (onPath || showEdgeWeights) {
           const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2
           const meters = (Math.hypot(b.x - a.x, b.y - a.y) / GRID * METER).toFixed(1)
-          ctx.fillStyle = 'rgba(255,255,255,0.92)'
+          ctx.fillStyle = onPath ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.82)'
           ctx.beginPath()
           ctx.roundRect(mx - 14 * invScale, my - 7 * invScale, 28 * invScale, 14 * invScale, 2 * invScale)
           ctx.fill()
-          ctx.fillStyle = '#10b981'
+          ctx.fillStyle = onPath ? '#10b981' : '#94a3b8'
           ctx.font = `${8 * invScale}px JetBrains Mono, monospace`
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           ctx.fillText(`${meters}м`, mx, my)
@@ -264,9 +272,9 @@ export default function useRender(canvasRef) {
         const onPath = pathIds.includes(node.id)
         const color = node.isExit ? '#ef4444'
           : node.isStair ? '#f59e0b'
-          : node.isDoor ? '#94a3b8'
-          : onPath ? '#10b981'
-          : '#3b82f6'
+            : node.isDoor ? '#94a3b8'
+              : onPath ? '#10b981'
+                : '#3b82f6'
 
         ctx.fillStyle = color + '28'
         ctx.beginPath(); ctx.arc(node.x, node.y, (node.isDoor ? 6 : 9) * invScale, 0, Math.PI * 2); ctx.fill()
@@ -290,31 +298,49 @@ export default function useRender(canvasRef) {
       if (evacuationView === 'single' && activePath && activePath.length > 1)
         drawEvacPath(ctx, activePath, invScale, { color: '#009944' })
       if (evacuationView === 'all' && allPaths.length > 0)
-        allPaths.forEach(p => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: '#009944' }) })
+        allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] }) })
     }
     if (isAdvanced) {
       if (activePath && activePath.length > 1)
         drawEvacPath(ctx, activePath, invScale, { color: '#10b981', lineWidth: 2.5 })
       if (evacuationView === 'all' && allPaths.length > 0)
-        allPaths.forEach(p => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: '#10b98188', lineWidth: 2 }) })
+        allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] + 'cc', lineWidth: 2 }) })
+    }
+
+    // ── Мульти-кімнатні маршрути (обидва режими) ───────────────
+    if (evacuationView === 'multi' && multiRoomPaths) {
+      Object.entries(multiRoomPaths).forEach(([, entry]) => {
+        if (entry.path && entry.path.length > 1)
+          drawEvacPath(ctx, entry.path, invScale, { color: entry.color, lineWidth: isAdvanced ? 2.5 : 3 })
+      })
     }
 
     // ══════════════════════════════════════════════════════════
     //  СТІНИ
     // ══════════════════════════════════════════════════════════
     const wallThickness = isSimple ? 3 : 5
+    const wallColor = isSimple ? '#111827' : '#1e293b'
     walls.forEach(wall => {
       const dx = wall.x2 - wall.x1, dy = wall.y2 - wall.y1
       const len = Math.hypot(dx, dy)
       if (len === 0) return
       const nx = (-dy / len) * wallThickness / 2
       const ny = (dx / len) * wallThickness / 2
-      ctx.fillStyle = isSimple ? '#111827' : '#1e293b'
+      ctx.fillStyle = wallColor
       ctx.beginPath()
       ctx.moveTo(wall.x1 + nx, wall.y1 + ny); ctx.lineTo(wall.x2 + nx, wall.y2 + ny)
       ctx.lineTo(wall.x2 - nx, wall.y2 - ny); ctx.lineTo(wall.x1 - nx, wall.y1 - ny)
       ctx.closePath(); ctx.fill()
     })
+    // Заповнюємо кутові дірочки — коло в кожній точці з'єднання стін
+    ctx.fillStyle = wallColor
+    walls.forEach(wall => {
+      const r = wallThickness / 2
+        ;[[wall.x1, wall.y1], [wall.x2, wall.y2]].forEach(([x, y]) => {
+          ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+        })
+    })
+
 
     // ══════════════════════════════════════════════════════════
     //  ДВЕРІ
@@ -337,18 +363,32 @@ export default function useRender(canvasRef) {
       ctx.lineCap = 'round'
 
       if (isBlocked) {
-        // Заблоковані двері — червоний X
-        const xs = GRID * 0.5
-        ctx.strokeStyle = '#ef4444'
-        ctx.lineWidth = (isSimple ? 1.5 : 2) * invScale
+        // Заблоковані двері — діагональна штриховка (стандарт на планах евакуації)
+        const hs = GRID * 0.75
+        ctx.save()
         ctx.beginPath()
-        ctx.moveTo(door.x - xs, door.y - xs); ctx.lineTo(door.x + xs, door.y + xs)
-        ctx.moveTo(door.x + xs, door.y - xs); ctx.lineTo(door.x - xs, door.y + xs)
-        ctx.stroke()
-        if (isAdvanced) {
-          ctx.fillStyle = 'rgba(239,68,68,0.10)'
-          ctx.beginPath(); ctx.arc(door.x, door.y, xs * 1.4, 0, Math.PI * 2); ctx.fill()
+        ctx.rect(door.x - hs, door.y - hs, hs * 2, hs * 2)
+        ctx.clip()
+        ctx.fillStyle = 'rgba(239,68,68,0.08)'
+        ctx.fillRect(door.x - hs, door.y - hs, hs * 2, hs * 2)
+        ctx.strokeStyle = 'rgba(239,68,68,0.55)'
+        ctx.lineWidth = 1.2 * invScale
+        ctx.setLineDash([])
+        const step = 6 * invScale
+        for (let k = -4; k <= 4; k++) {
+          const offset2 = k * step
+          ctx.beginPath()
+          ctx.moveTo(door.x - hs, door.y + offset2)
+          ctx.lineTo(door.x + offset2, door.y - hs)
+          ctx.moveTo(door.x + offset2, door.y + hs)
+          ctx.lineTo(door.x + hs, door.y + offset2)
+          ctx.stroke()
         }
+        ctx.restore()
+        // Червона рамка
+        ctx.strokeStyle = '#ef4444'
+        ctx.lineWidth = 1.5 * invScale
+        ctx.strokeRect(door.x - hs, door.y - hs, hs * 2, hs * 2)
       } else if (isSimple) {
         ctx.strokeStyle = '#b0b8c4'
         ctx.lineWidth = 0.8 * invScale
@@ -404,7 +444,7 @@ export default function useRender(canvasRef) {
         if (isAdvanced) {
           ctx.fillStyle = 'rgba(239,68,68,0.15)'
           ctx.beginPath()
-          ctx.roundRect(exit.x - bw/2 - 5*invScale, exit.y - bh/2 - 5*invScale, bw + 10*invScale, bh + 10*invScale, (bh/2 + 5*invScale))
+          ctx.roundRect(exit.x - bw / 2 - 5 * invScale, exit.y - bh / 2 - 5 * invScale, bw + 10 * invScale, bh + 10 * invScale, (bh / 2 + 5 * invScale))
           ctx.fill()
         }
         ctx.fillStyle = '#ef4444'
@@ -430,7 +470,7 @@ export default function useRender(canvasRef) {
         const bw = ctx.measureText(text).width + 10 * invScale
         ctx.fillStyle = 'rgba(0,166,81,0.13)'
         ctx.beginPath()
-        ctx.roundRect(exit.x - bw/2 - 5*invScale, exit.y - bh/2 - 5*invScale, bw + 10*invScale, bh + 10*invScale, (bh/2 + 5*invScale))
+        ctx.roundRect(exit.x - bw / 2 - 5 * invScale, exit.y - bh / 2 - 5 * invScale, bw + 10 * invScale, bh + 10 * invScale, (bh / 2 + 5 * invScale))
         ctx.fill()
         ctx.fillStyle = '#00a651'
         ctx.beginPath(); ctx.roundRect(exit.x - bw / 2, exit.y - bh / 2, bw, bh, bh / 2); ctx.fill()

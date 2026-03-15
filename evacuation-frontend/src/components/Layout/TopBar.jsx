@@ -12,17 +12,18 @@ export default function TopBar() {
   } = useStore()
   const { save, loadPlan, newPlan, lastSavedLabel } = useSaveLoad()
 
-  const [dropdownOpen, setDropdownOpen]     = useState(false)
-  const [plans, setPlans]                   = useState([])
-  const [editingName, setEditingName]       = useState(false)
-  const [nameInput, setNameInput]           = useState(currentPlanName)
-  const [newPlanInput, setNewPlanInput]     = useState(false)
-  const [newPlanName, setNewPlanName]       = useState('')
-  const [backendOnline, setBackendOnline]   = useState(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [plans, setPlans] = useState([])
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState(currentPlanName)
+  const [newPlanInput, setNewPlanInput] = useState(false)
+  const [newPlanName, setNewPlanName] = useState('')
+  const [backendOnline, setBackendOnline] = useState(null)
 
   const checkBackend = useCallback(async () => {
     try {
-      const res = await fetch('https://localhost:7155/api/buildings', {
+      const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5135/api'
+      const res = await fetch(`${BASE}/buildings`, {
         method: 'HEAD',
         signal: AbortSignal.timeout(2000),
       })
@@ -107,7 +108,7 @@ export default function TopBar() {
             >
               <span>Плани</span>
               <svg width="10" height="6" viewBox="0 0 10 6" className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}>
-                <path d="M1 1l4 4 4-4" stroke="#999" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                <path d="M1 1l4 4 4-4" stroke="#999" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </svg>
             </button>
 
@@ -149,7 +150,7 @@ export default function TopBar() {
                           <span className="text-[10px] text-[#bbb] font-mono">{formatDate(plan.savedAt)}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 14 14" className="opacity-0 group-hover:opacity-100 flex-shrink-0">
-                          <path d="M5 7h4M7 5l2 2-2 2" stroke="#ff4422" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M5 7h4M7 5l2 2-2 2" stroke="#ff4422" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>
                     ))}
@@ -179,15 +180,15 @@ export default function TopBar() {
               {hasUnsaved && <span className="ml-1 text-[#f5c542] text-[10px]">●</span>}
             </button>
           )}
-        {/* Undo */}
-        <button
-          onClick={() => undo()}
-          disabled={history.length === 0}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-[13px] text-[#888] hover:text-[#ff4422] hover:bg-[#f0f0f0] disabled:opacity-30 disabled:cursor-not-allowed transition-all ml-2"
-          title="Скасувати (Ctrl+Z)"
-        >
-          ↶
-        </button>
+          {/* Undo */}
+          <button
+            onClick={() => undo()}
+            disabled={history.length === 0}
+            className="w-7 h-7 rounded-md flex items-center justify-center text-[13px] text-[#888] hover:text-[#ff4422] hover:bg-[#f0f0f0] disabled:opacity-30 disabled:cursor-not-allowed transition-all ml-2"
+            title="Скасувати (Ctrl+Z)"
+          >
+            ↶
+          </button>
         </div>
 
         {/* Center: mode tabs (absolute center) */}
@@ -195,21 +196,19 @@ export default function TopBar() {
           <div className="flex bg-[#ebebeb] rounded-lg p-[3px] gap-[2px]">
             <button
               onClick={() => setMode('constructor')}
-              className={`px-5 py-[5px] rounded-md text-[12px] font-medium transition-all ${
-                mode === 'constructor'
+              className={`px-5 py-[5px] rounded-md text-[12px] font-medium transition-all ${mode === 'constructor'
                   ? 'bg-white text-[#1a1a1a] shadow-sm'
                   : 'text-[#999] hover:text-[#555]'
-              }`}
+                }`}
             >
               Конструктор
             </button>
             <button
               onClick={() => setMode('evacuation')}
-              className={`px-5 py-[5px] rounded-md text-[12px] font-medium transition-all ${
-                mode === 'evacuation'
+              className={`px-5 py-[5px] rounded-md text-[12px] font-medium transition-all ${mode === 'evacuation'
                   ? 'bg-[#ff4422] text-white shadow-sm'
                   : 'text-[#999] hover:text-[#555]'
-              }`}
+                }`}
             >
               🔥 Евакуація
             </button>
@@ -221,21 +220,19 @@ export default function TopBar() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setViewMode('simple')}
-              className={`px-2.5 py-[4px] rounded-md text-[11px] font-medium transition-all border ${
-                viewMode === 'simple'
+              className={`px-2.5 py-[4px] rounded-md text-[11px] font-medium transition-all border ${viewMode === 'simple'
                   ? 'bg-white text-[#1a1a1a] border-[#e0e0e0] shadow-sm'
                   : 'text-[#bbb] border-transparent hover:text-[#888]'
-              }`}
+                }`}
             >
               Простий
             </button>
             <button
               onClick={() => setViewMode('advanced')}
-              className={`px-2.5 py-[4px] rounded-md text-[11px] font-medium transition-all border ${
-                viewMode === 'advanced'
+              className={`px-2.5 py-[4px] rounded-md text-[11px] font-medium transition-all border ${viewMode === 'advanced'
                   ? 'bg-white text-[#1a1a1a] border-[#e0e0e0] shadow-sm'
                   : 'text-[#bbb] border-transparent hover:text-[#888]'
-              }`}
+                }`}
             >
               Розширений
             </button>
@@ -252,9 +249,8 @@ export default function TopBar() {
           <button
             onClick={() => setAutoSave(!autoSave)}
             title={autoSave ? 'Автозбереження увімкнено' : 'Автозбереження вимкнено'}
-            className={`w-7 h-7 rounded-md flex items-center justify-center text-[13px] transition-all ${
-              autoSave ? 'bg-[#f0fdf4] text-[#22c984]' : 'text-[#ccc] hover:text-[#999]'
-            }`}
+            className={`w-7 h-7 rounded-md flex items-center justify-center text-[13px] transition-all ${autoSave ? 'bg-[#f0fdf4] text-[#22c984]' : 'text-[#ccc] hover:text-[#999]'
+              }`}
           >
             ⟳
           </button>
@@ -269,16 +265,14 @@ export default function TopBar() {
 
           <div className="flex items-center gap-1.5 flex-shrink-0" title={
             backendOnline === null ? 'Перевірка...' :
-            backendOnline ? 'Бекенд запущено' : 'Бекенд недоступний'
+              backendOnline ? 'Бекенд запущено' : 'Бекенд недоступний'
           }>
-            <div className={`w-[6px] h-[6px] rounded-full transition-colors ${
-              backendOnline === null ? 'bg-[#f5c542] animate-pulse' :
-              backendOnline ? 'bg-[#22c984]' : 'bg-[#ff4422] animate-pulse'
-            }`} />
-            <span className={`text-[11px] transition-colors ${
-              backendOnline === null ? 'text-[#f5c542]' :
-              backendOnline ? 'text-[#bbb]' : 'text-[#ff4422]'
-            }`}>
+            <div className={`w-[6px] h-[6px] rounded-full transition-colors ${backendOnline === null ? 'bg-[#f5c542] animate-pulse' :
+                backendOnline ? 'bg-[#22c984]' : 'bg-[#ff4422] animate-pulse'
+              }`} />
+            <span className={`text-[11px] transition-colors ${backendOnline === null ? 'text-[#f5c542]' :
+                backendOnline ? 'text-[#bbb]' : 'text-[#ff4422]'
+              }`}>
               {backendOnline === null ? '...' : backendOnline ? 'API' : 'offline'}
             </span>
           </div>

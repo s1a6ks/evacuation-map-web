@@ -45,9 +45,9 @@ export function findNearestWall(x, y, walls, maxDist = 16) {
 
 export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
   const {
-    tool, walls, doors, exits, stairs, extinguishers,
-    addWall, addDoor, addExit, addStair, addExtinguisher,
-    removeWall, removeDoor, removeExit, removeStair, removeExtinguisher,
+    tool, walls, doors, exits, stairs,
+    addWall, addDoor, addExit, addStair,
+    removeWall, removeDoor, removeExit, removeStair,
     pushHistory,
     setMousePos,
     setSelectedStairInfo, currentFloorId,
@@ -60,7 +60,7 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
   const handleMouseMove = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const rawX = (e.clientX - rect.left - offset.x) / scale
-    const rawY = (e.clientY - rect.top  - offset.y) / scale
+    const rawY = (e.clientY - rect.top - offset.y) / scale
     const snapped = snapPoint(rawX, rawY)
     setLocalMousePos(snapped)
     setMousePos(snapped)
@@ -69,7 +69,7 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
   const handleClick = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = snap((e.clientX - rect.left - offset.x) / scale)
-    const y = snap((e.clientY - rect.top  - offset.y) / scale)
+    const y = snap((e.clientY - rect.top - offset.y) / scale)
 
     if (tool === 'wall') {
       if (!drawing) {
@@ -111,10 +111,6 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
       addStair({ x, y })
     }
 
-    if (tool === 'extinguisher') {
-      pushHistory()
-      addExtinguisher({ x, y })
-    }
 
     // ── Клік на сходи (будь-який інструмент крім erase) — виділяємо ──
     if (tool !== 'erase' && tool !== 'wall') {
@@ -160,11 +156,6 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
         if (dist < ERASE_RADIUS) candidates.push({ type: 'stair', index: i, dist })
       })
 
-      // Вогнегасники
-      extinguishers.forEach((ex, i) => {
-        const dist = Math.hypot(ex.x - x, ex.y - y)
-        if (dist < ERASE_RADIUS) candidates.push({ type: 'extinguisher', index: i, dist })
-      })
 
       if (candidates.length === 0) return
 
@@ -174,18 +165,16 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
       pushHistory()
 
       switch (target.type) {
-        case 'wall':  removeWall(target.index);  break
-        case 'door':  removeDoor(target.index);  break
-        case 'exit':  removeExit(target.index);  break
+        case 'wall': removeWall(target.index); break
+        case 'door': removeDoor(target.index); break
+        case 'exit': removeExit(target.index); break
         case 'stair': removeStair(target.index); break
-        case 'extinguisher': removeExtinguisher(target.index); break
       }
     }
   }, [tool, drawing, drawStart, walls, doors, exits, stairs,
-      addWall, addDoor, addExit, addStair,
-      removeWall, removeDoor, removeExit, removeStair, removeExtinguisher,
-      addExtinguisher, extinguishers,
-      pushHistory, setSelectedStairInfo, currentFloorId, scale, offset])
+    addWall, addDoor, addExit, addStair,
+    removeWall, removeDoor, removeExit, removeStair,
+    pushHistory, setSelectedStairInfo, currentFloorId, scale, offset])
 
   const handleDoubleClick = useCallback(() => {
     if (tool === 'wall' && drawing) {
