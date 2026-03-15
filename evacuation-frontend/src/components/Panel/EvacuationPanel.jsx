@@ -6,9 +6,9 @@ const METER = 0.5
 const WALK_SPEED = 1.4
 
 const LEVEL_STYLES = {
-  ok:      { bg: '#f0fdf4', border: '#86efac', dot: '#22c984', text: '#166534' },
+  ok: { bg: '#f0fdf4', border: '#86efac', dot: '#22c984', text: '#166534' },
   warning: { bg: '#fffbeb', border: '#fcd34d', dot: '#f5c542', text: '#92400e' },
-  error:   { bg: '#fff1f2', border: '#fca5a5', dot: '#ff4422', text: '#991b1b' },
+  error: { bg: '#fff1f2', border: '#fca5a5', dot: '#ff4422', text: '#991b1b' },
 }
 
 function pxToM(px) { return (px / GRID) * METER }
@@ -45,6 +45,8 @@ export default function EvacuationPanel() {
     selectedRoomId, setCurrentPath, setSelectedRoomId, setMultiFloorPath,
     algorithmMetrics, currentFloorId,
     blockedExits, blockedDoors, clearBlockages,
+    selectedRoomIds, multiRoomPaths, clearMultiRoom,
+    showEdgeWeights, setShowEdgeWeights,
   } = useStore()
 
   // Активний маршрут (з multiFloorPath або currentPath)
@@ -56,9 +58,7 @@ export default function EvacuationPanel() {
     return currentPath
   })()
 
-  const isMultiFloor = !!multiFloorPath && multiFloorPath.length > 1
-
-  const metrics  = computeRouteMetrics(activePath, graphEdges, doors)
+  const metrics = computeRouteMetrics(activePath, graphEdges, doors)
   const analysis = computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms)
   const hasGraph = graphNodes.length > 0
   const selectedRoom = detectedRooms.find(r => r.id === selectedRoomId)
@@ -79,11 +79,10 @@ export default function EvacuationPanel() {
             <button
               key={alg}
               onClick={() => setAlgorithm(alg)}
-              className={`flex-1 py-[5px] rounded-md text-[11px] font-medium transition-all border ${
-                algorithm === alg
-                  ? 'bg-[#ff4422] text-white border-[#ff4422]'
-                  : 'bg-white text-[#888] border-[#e0e0e0] hover:border-[#ccc]'
-              }`}
+              className={`flex-1 py-[5px] rounded-md text-[11px] font-medium transition-all border ${algorithm === alg
+                ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                : 'bg-white text-[#888] border-[#e0e0e0] hover:border-[#ccc] hover:text-[#1a1a1a]'
+                }`}
             >
               {alg === 'astar' ? 'A*' : 'Dijkstra'}
             </button>
@@ -94,122 +93,167 @@ export default function EvacuationPanel() {
             ? 'A* — евристика, швидше на великих планах'
             : 'Dijkstra — гарантує оптимальний шлях'}
         </div>
+        <button
+          onClick={() => setShowEdgeWeights(!showEdgeWeights)}
+          className={`mt-2 w-full py-[4px] rounded-md text-[10px] font-medium transition-all border ${showEdgeWeights
+            ? 'bg-[#eff6ff] border-[#bfdbfe] text-[#3b82f6]'
+            : 'bg-white text-[#bbb] border-[#e8e8e8] hover:border-[#ccc] hover:text-[#888]'
+            }`}
+        >
+          {showEdgeWeights ? '■ Приховати ваги ребер' : '□ Показати ваги ребер'}
+        </button>
 
-        </Section>
+      </Section>
 
       {/* ── Вид евакуації ── */}
       <Section title="Вид">
-        <div className="flex gap-1.5">
-          {[
-            { id: 'single', label: '📍 З кімнати' },
-            { id: 'all',    label: '🗺 Загальний' },
-          ].map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => {
-                setEvacuationView(id)
-                if (id === 'single') { setAllPaths([]) }
-                else { setCurrentPath(null); setMultiFloorPath(null); setSelectedRoomId(null) }
-              }}
-              className={`flex-1 py-[5px] rounded-md text-[11px] font-medium transition-all border ${
-                evacuationView === id
-                  ? 'bg-[#ff4422] text-white border-[#ff4422]'
-                  : 'bg-white text-[#888] border-[#e0e0e0] hover:border-[#ccc]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-1.5 text-[10px] text-[#bbb] leading-relaxed">
-          {evacuationView === 'single'
-            ? 'Клікніть на кімнату для маршруту'
-            : `Клікніть на полотно щоб показати всі маршрути${allPaths.length > 0 ? ` · ${allPaths.length} маршрутів` : ''}`
-          }
+        <div className="flex flex-col gap-1.5">
+          <div className="flex gap-1.5">
+            {[
+              { id: 'single', label: 'з кімнати' },
+              { id: 'multi', label: 'декілька' },
+              { id: 'all', label: 'всі' },
+            ].map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => {
+                  setEvacuationView(id)
+                  if (id === 'single') { setAllPaths([]); clearMultiRoom?.() }
+                  else if (id === 'multi') { setCurrentPath(null); setMultiFloorPath(null); setSelectedRoomId(null); setAllPaths([]) }
+                  else { setCurrentPath(null); setMultiFloorPath(null); setSelectedRoomId(null); clearMultiRoom?.() }
+                }}
+                className={`flex-1 py-[5px] rounded-md text-[11px] font-medium transition-all border ${evacuationView === id
+                  ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                  : 'bg-white text-[#888] border-[#e0e0e0] hover:border-[#ccc] hover:text-[#1a1a1a]'
+                  }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="text-[10px] text-[#bbb] leading-relaxed">
+            {evacuationView === 'single' && 'Клікніть на кімнату для маршруту'}
+            {evacuationView === 'multi' && `Клікайте кілька кімнат — повторно знімає${selectedRoomIds?.length > 0 ? ` · ${selectedRoomIds.length} обрано` : ''}`}
+            {evacuationView === 'all' && `Клікніть на полотно щоб показати всі маршрути${allPaths.length > 0 ? ` · ${allPaths.length} маршрутів` : ''}`}
+          </div>
         </div>
       </Section>
 
-      {/* ── Маршрут ── */}
-      <Section title="Маршрут">
-        {!selectedRoom ? (
-          <div className="text-[11px] text-[#bbb] py-1 leading-relaxed">
-            👆 Клікніть на кімнату щоб побудувати маршрут до виходу
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="text-[11px] text-[#888]">Обрана кімната</div>
-                <div className="text-[13px] font-semibold text-[#1a1a1a]">{selectedRoom.label}</div>
-                <div className="text-[10px] text-[#bbb] font-mono">{selectedRoom.areaM2} м²</div>
+      {/* ── Мульти-кімнатні маршрути ── */}
+      {evacuationView === 'multi' && (
+        <Section title="Обрані кімнати">
+          {!selectedRoomIds?.length ? (
+            <div className="text-[11px] text-[#bbb] py-1 leading-relaxed">
+              👆 Клікніть на кілька кімнат щоб порівняти маршрути
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-[4px] mb-2">
+                {selectedRoomIds.map((roomId, i) => {
+                  const entry = multiRoomPaths?.[roomId]
+                  const room = detectedRooms.find(r => r.id === roomId)
+                  const distM = entry?.distPx ? ((entry.distPx / 20) * 0.5).toFixed(1) : null
+                  return (
+                    <div key={roomId} className="flex items-center gap-2 py-[5px] px-2 rounded-md bg-[#f9f9f9] border border-[#f0f0f0]">
+                      <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: entry?.color ?? '#ccc' }} />
+                      <span className="text-[11px] flex-1 truncate text-[#444]">{room?.label ?? roomId}</span>
+                      <span className="text-[10px] font-mono text-[#888] flex-shrink-0">
+                        {distM ? `${distM}м` : entry?.path ? '?' : '∞'}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
               <button
-                onClick={handleClearRoute}
-                className="text-[10px] text-[#ccc] hover:text-[#ff4422] transition-colors px-1"
-              >✕</button>
+                onClick={() => clearMultiRoom?.()}
+                className="w-full py-[4px] rounded-md text-[10px] text-[#888] border border-[#e0e0e0] hover:border-[#ccc] hover:text-[#444] transition-all"
+              >
+                Скинути вибір
+              </button>
+            </>
+          )}
+        </Section>
+      )}
+
+      {/* ── Маршрут (одна кімната) ── */}
+      {evacuationView !== 'multi' && (
+        <Section title="Маршрут">
+          {!selectedRoom ? (
+            <div className="text-[11px] text-[#bbb] py-1 leading-relaxed">
+              👆 Клікніть на кімнату щоб побудувати маршрут до виходу
             </div>
-
-            {isMultiFloor && (
-              <div className="mb-2 px-2 py-1.5 rounded-md text-[10px] bg-[#fffbeb] border border-[#fcd34d] text-[#92400e]">
-                ⊞ Маршрут через {multiFloorPath.length} поверхи — перемкніть поверх щоб побачити продовження
-              </div>
-            )}
-
-            {metrics ? (
-              <>
-                <MetricRow
-                  icon="📏"
-                  label="Відстань"
-                  value={`${metrics.distanceM} м`}
-                  sub={`${metrics.nodeCount} вузлів · ${algorithm.toUpperCase()}`}
-                />
-                <MetricRow
-                  icon="⏱"
-                  label="Орієнтовний час"
-                  value={`~${metrics.timeS} сек`}
-                  sub="швидкість 1.4 м/с"
-                />
-                {metrics.doorCount > 0 && (
-                  <MetricRow
-                    icon="🚪"
-                    label="Проходів"
-                    value={`${metrics.doorCount}`}
-                  />
-                )}
-                {/* Нормативна перевірка ДБН В.1.1-7 */}
-                {(() => {
-                  const dist = parseFloat(metrics.distanceM)
-                  if (dist > 25) {
-                    return (
-                      <div className="mt-2 px-2 py-1.5 rounded-md text-[10px] bg-[#fffbeb] border border-[#fcd34d] text-[#92400e]">
-                        ⚠️ ДБН В.1.1-7: відстань {metrics.distanceM}м перевищує рекомендовані 25м
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
-                <div
-                  className="mt-2 px-2 py-1.5 rounded-md text-[11px] font-medium"
-                  style={metrics.reachesExit
-                    ? { background: '#f0fdf4', color: '#166534' }
-                    : { background: '#fff1f2', color: '#991b1b' }
-                  }
-                >
-                  {metrics.reachesExit
-                    ? '✅ Маршрут веде до виходу'
-                    : isMultiFloor
-                      ? '⊞ Маршрут через сходи на інший поверх'
-                      : '⚠️ Маршрут не досягає виходу'}
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="text-[11px] text-[#888]">Обрана кімната</div>
+                  <div className="text-[13px] font-semibold text-[#1a1a1a]">{selectedRoom.label}</div>
+                  <div className="text-[10px] text-[#bbb] font-mono">{selectedRoom.areaM2} м²</div>
                 </div>
-              </>
-            ) : (
-              <div className="text-[11px] text-[#ff4422] py-1">
-                ⚠️ Виходів не знайдено — додайте EXIT або з'єднайте сходи
+                <button
+                  onClick={handleClearRoute}
+                  className="text-[10px] text-[#ccc] hover:text-[#ff4422] transition-colors px-1"
+                >✕</button>
               </div>
-            )}
-          </>
-        )}
-      </Section>
+
+
+
+              {metrics ? (
+                <>
+                  <MetricRow
+                    icon="📏"
+                    label="Відстань"
+                    value={`${metrics.distanceM} м`}
+                    sub={`${metrics.nodeCount} вузлів · ${algorithm.toUpperCase()}`}
+                  />
+                  <MetricRow
+                    icon="⏱"
+                    label="Орієнтовний час"
+                    value={`~${metrics.timeS} сек`}
+                    sub="швидкість 1.4 м/с"
+                  />
+                  {metrics.doorCount > 0 && (
+                    <MetricRow
+                      icon="🚪"
+                      label="Проходів"
+                      value={`${metrics.doorCount}`}
+                    />
+                  )}
+                  {/* Нормативна перевірка ДБН В.1.1-7 */}
+                  {(() => {
+                    const dist = parseFloat(metrics.distanceM)
+                    if (dist > 25) {
+                      return (
+                        <div className="mt-2 px-2 py-1.5 rounded-md text-[10px] bg-[#fffbeb] border border-[#fcd34d] text-[#92400e]">
+                          ⚠️ ДБН В.1.1-7: відстань {metrics.distanceM}м перевищує рекомендовані 25м
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
+                  <div
+                    className="mt-2 px-2 py-1.5 rounded-md text-[11px] font-medium"
+                    style={metrics.reachesExit
+                      ? { background: '#f0fdf4', color: '#166534' }
+                      : { background: '#fff1f2', color: '#991b1b' }
+                    }
+                  >
+                    {metrics.reachesExit
+                      ? '✅ Маршрут веде до виходу'
+                      : (multiFloorPath && multiFloorPath.length > 1)
+                        ? '⊞ Маршрут через сходи на інший поверх'
+                        : '⚠️ Маршрут не досягає виходу'}
+                  </div>
+                </>
+              ) : (
+                <div className="text-[11px] text-[#ff4422] py-1">
+                  ⚠️ Виходів не знайдено — додайте EXIT або з'єднайте сходи
+                </div>
+              )}
+            </>
+          )}
+        </Section>
+      )}
 
       {/* ── Порівняння алгоритмів ── */}
       <Section title="Порівняння алгоритмів">
@@ -218,8 +262,8 @@ export default function EvacuationPanel() {
           const d = algorithmMetrics.dijkstra
 
           // Визначаємо переможця по кожній метриці
-          const fasterIs  = a && d ? (parseFloat(a.ms) <= parseFloat(d.ms) ? 'astar' : 'dijkstra') : null
-          const fewerIs   = a && d ? (a.visited <= d.visited ? 'astar' : 'dijkstra') : null
+          const fasterIs = a && d ? (parseFloat(a.ms) <= parseFloat(d.ms) ? 'astar' : 'dijkstra') : null
+          const fewerIs = a && d ? (a.visited <= d.visited ? 'astar' : 'dijkstra') : null
           const shorterIs = a && d ? (a.distPx <= d.distPx ? 'astar' : 'dijkstra') : null
 
           function cellColor(algo, winner) {
@@ -364,7 +408,7 @@ export default function EvacuationPanel() {
                   const distVal = room.distM ? parseFloat(room.distM) : null
                   const barColor = !room.isReachable ? '#ff4422'
                     : distVal > 25 ? '#f5c542'
-                    : '#22c984'
+                      : '#22c984'
                   const barWidth = distVal ? Math.min(100, (distVal / 40) * 100) : 100
                   return (
                     <div key={room.id} className="py-[3px]">

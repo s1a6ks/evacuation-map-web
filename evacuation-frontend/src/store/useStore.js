@@ -10,10 +10,25 @@ const useStore = create((set) => ({
   setViewMode: (v) => set({ viewMode: v }),
 
   // ── Режим евакуації ────────────────────────────────────────
-  evacuationView: 'single',  // 'single' | 'all'
+  evacuationView: 'single',  // 'single' | 'all' | 'multi'
   setEvacuationView: (v) => set({ evacuationView: v }),
   allPaths: [],              // маршрути для всіх кімнат (загальний план)
   setAllPaths: (paths) => set({ allPaths: paths }),
+
+  // ── Мульти-кімнатний режим ────────────────────────────────
+  selectedRoomIds: [],       // масив обраних roomId
+  multiRoomPaths: {},        // { roomId: { path, color, label } }
+  toggleSelectedRoomId: (id) => set(s => ({
+    selectedRoomIds: s.selectedRoomIds.includes(id)
+      ? s.selectedRoomIds.filter(r => r !== id)
+      : [...s.selectedRoomIds, id],
+  })),
+  setMultiRoomPaths: (paths) => set({ multiRoomPaths: paths }),
+  clearMultiRoom: () => set({ selectedRoomIds: [], multiRoomPaths: {} }),
+
+  // ── Показ ваг ребер ──────────────────────────────────────
+  showEdgeWeights: false,
+  setShowEdgeWeights: (v) => set({ showEdgeWeights: v }),
 
   // ── Інструмент ─────────────────────────────────────────────
   tool: 'wall',
@@ -40,6 +55,7 @@ const useStore = create((set) => ({
       walls: [], doors: [], exits: [], stairs: [], extinguishers: [],
       detectedRooms: [], graphNodes: [], graphEdges: [],
       currentPath: null, multiFloorPath: null, allPaths: [], selectedRoomId: null,
+      selectedRoomIds: [], multiRoomPaths: {},
     }
   }),
 
@@ -64,6 +80,7 @@ const useStore = create((set) => ({
       // currentPath і multiFloorPath НЕ скидаємо — щоб маршрут зберігався при переключенні поверху
       detectedRooms: [], graphNodes: [], graphEdges: [],
       allPaths: [], selectedRoomId: null,
+      selectedRoomIds: [], multiRoomPaths: {},
     }
   }),
 
@@ -99,19 +116,19 @@ const useStore = create((set) => ({
   stairs: [],
   extinguishers: [],
 
-  addWall:  (wall)  => set(s => ({ walls:  [...s.walls,  wall]  })),
-  addDoor:  (door)  => set(s => ({ doors:  [...s.doors,  door]  })),
-  addExit:  (exit)  => set(s => ({ exits:  [...s.exits,  exit]  })),
+  addWall: (wall) => set(s => ({ walls: [...s.walls, wall] })),
+  addDoor: (door) => set(s => ({ doors: [...s.doors, door] })),
+  addExit: (exit) => set(s => ({ exits: [...s.exits, exit] })),
   renameExit: (idx, label) => set(s => ({
     exits: s.exits.map((e, i) => i === idx ? { ...e, label } : e),
   })),
   addStair: (stair) => set(s => ({ stairs: [...s.stairs, stair] })),
 
-  removeWall:  (idx) => set(s => ({ walls:  s.walls.filter((_,  i) => i !== idx) })),
-  removeDoor:  (idx) => set(s => ({ doors:  s.doors.filter((_,  i) => i !== idx) })),
-  removeExit:  (idx) => set(s => ({ exits:  s.exits.filter((_,  i) => i !== idx) })),
-  removeStair:        (idx) => set(s => ({ stairs:        s.stairs.filter((_, i) => i !== idx) })),
-  addExtinguisher:    (e)   => set(s => ({ extinguishers: [...s.extinguishers, e] })),
+  removeWall: (idx) => set(s => ({ walls: s.walls.filter((_, i) => i !== idx) })),
+  removeDoor: (idx) => set(s => ({ doors: s.doors.filter((_, i) => i !== idx) })),
+  removeExit: (idx) => set(s => ({ exits: s.exits.filter((_, i) => i !== idx) })),
+  removeStair: (idx) => set(s => ({ stairs: s.stairs.filter((_, i) => i !== idx) })),
+  addExtinguisher: (e) => set(s => ({ extinguishers: [...s.extinguishers, e] })),
   removeExtinguisher: (idx) => set(s => ({ extinguishers: s.extinguishers.filter((_, i) => i !== idx) })),
 
   // ── Кімнати ────────────────────────────────────────────────
@@ -194,7 +211,7 @@ const useStore = create((set) => ({
   buildingId: null,
   floorId: null,
   setBuildingId: (id) => set({ buildingId: id }),
-  setFloorId:    (id) => set({ floorId: id }),
+  setFloorId: (id) => set({ floorId: id }),
 
   // ── Маппінг локальних ID → бекенд ID ──────────────────────
   roomIdMap: {},
@@ -218,11 +235,11 @@ const useStore = create((set) => ({
   history: [],
   pushHistory: () => set(s => ({
     history: [...s.history, {
-      walls:        [...s.walls],
-      doors:        [...s.doors],
-      exits:        [...s.exits],
-      stairs:       [...s.stairs],
-      extinguishers:[...s.extinguishers],
+      walls: [...s.walls],
+      doors: [...s.doors],
+      exits: [...s.exits],
+      stairs: [...s.stairs],
+      extinguishers: [...s.extinguishers],
     }]
   })),
   undo: () => set(s => {
@@ -239,7 +256,7 @@ const useStore = create((set) => ({
     stairLinks: {}, selectedStairInfo: null,
     buildingId: null, floorId: null, viewMode: 'simple',
     roomIdMap: {}, nodeIdMap: {},
-    selectedRoomId: null, lastSaved: null,
+    selectedRoomId: null, selectedRoomIds: [], multiRoomPaths: {}, lastSaved: null,
     currentPlanName: 'Новий план',
     floors: [{ id: 1, name: '1 поверх' }],
     currentFloorId: 1,

@@ -7,6 +7,18 @@ import {
 const GRID = 20
 const HIT_RADIUS = GRID * 1.2   // радіус кліку для виходів/дверей
 
+// Палітра кольорів для мульти-режиму
+const MULTI_COLORS = [
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#f59e0b', // amber
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#f97316', // orange
+  '#14b8a6', // teal
+]
+
 function findRoomAtPixel(detectedRooms, px, py) {
   const col = Math.floor(px / GRID)
   const row = Math.floor(py / GRID)
@@ -38,6 +50,7 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     stairLinks,
     blockedExits, blockedDoors,
     toggleBlockedExit, toggleBlockedDoor,
+    selectedRoomIds, toggleSelectedRoomId, setMultiRoomPaths,
   } = useStore()
 
   function getAllFloorData() {
@@ -80,12 +93,12 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
 
     if (hasExitsHere) {
       const astarResult = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, true)
-      const dijkResult  = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, false)
+      const dijkResult = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, false)
 
       if (setAlgorithmMetrics && (astarResult || dijkResult)) {
         setAlgorithmMetrics({
-          astar:    astarResult ? { ms: astarResult.ms, visited: astarResult.visitedCount, distPx: astarResult.distPx } : null,
-          dijkstra: dijkResult  ? { ms: dijkResult.ms,  visited: dijkResult.visitedCount,  distPx: dijkResult.distPx  } : null,
+          astar: astarResult ? { ms: astarResult.ms, visited: astarResult.visitedCount, distPx: astarResult.distPx } : null,
+          dijkstra: dijkResult ? { ms: dijkResult.ms, visited: dijkResult.visitedCount, distPx: dijkResult.distPx } : null,
         })
       }
 
@@ -110,6 +123,25 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
       setCurrentPath(result)
     }
   }
+  // ── Мульти-кімнатний режим ─────────────────────────────────
+  function computeMultiRoomPaths(roomIdsToCompute) {
+    const effectiveNodes = getEffectiveNodes()
+    const result = {}
+    roomIdsToCompute.forEach((roomId, i) => {
+      const room = detectedRooms.find(r => r.id === roomId)
+      const roomNode = graphNodes.find(n => n.roomId === roomId)
+      if (!roomNode) return
+      const route = findRouteWithMetrics(roomNode.id, effectiveNodes, graphEdges, algorithm === 'astar')
+      result[roomId] = {
+        path: route?.path ?? null,
+        color: MULTI_COLORS[i % MULTI_COLORS.length],
+        label: room?.label ?? roomId,
+        distPx: route?.distPx ?? null,
+        ms: route?.ms ?? null,
+      }
+    })
+    setMultiRoomPaths(result)
+  }
 
   // ── Загальний план ─────────────────────────────────────────
   function computeAllPaths() {
@@ -129,17 +161,32 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
 
     const rect = e.currentTarget.getBoundingClientRect()
     const px = (e.clientX - rect.left - offset.x) / scale
-    const py = (e.clientY - rect.top  - offset.y) / scale
+    const py = (e.clientY - rect.top - offset.y) / scale
 
     // ── Пріоритет: клік на вихід → toggle блокування ────────
     const exitIdx = findElementAtPixel(exits, px, py)
     if (exitIdx !== null) {
       toggleBlockedExit(exitIdx)
-      // Перебудовуємо активний маршрут якщо він є
-      const store = useStore.getState()
-      if (store.selectedRoomId) {
-        const roomNode = graphNodes.find(n => n.roomId === store.selectedRoomId)
-        if (roomNode) saveRoute(findLocalRoute(roomNode.id))
+      // Читаємо СВІЖИЙ стан після toggle (уникаємо stale closure)
+      const fresh = useStore.getState()
+      if (fresh.selectedRoomId) {
+        const roomNode = fresh.graphNodes.find(n => n.roomId === fresh.selectedRoomId)
+        if (roomNode) {
+          // Фільтруємо заблоковані з свіжого стану
+          const effectiveNodes = fresh.graphNodes.filter(n => {
+            if (n.isExit) return !fresh.blockedExits.some(idx => {
+              const ex = fresh.exits[idx]
+              return ex && Math.abs(n.x - ex.x) < 2 && Math.abs(n.y - ex.y) < 2
+            })
+            if (n.isDoor) return !fresh.blockedDoors.some(idx => {
+              const d = fresh.doors[idx]
+              return d && Math.abs(n.x - d.x) < 2 && Math.abs(n.y - d.y) < 2
+            })
+            return true
+          })
+          const result = findRouteWithMetrics(roomNode.id, effectiveNodes, fresh.graphEdges, fresh.algorithm === 'astar')
+          saveRoute(result ? { segments: [{ floorId: fresh.currentFloorId, path: result.path }] } : null)
+        }
       }
       return
     }
@@ -148,11 +195,36 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     const doorIdx = findElementAtPixel(doors, px, py)
     if (doorIdx !== null) {
       toggleBlockedDoor(doorIdx)
-      const store = useStore.getState()
-      if (store.selectedRoomId) {
-        const roomNode = graphNodes.find(n => n.roomId === store.selectedRoomId)
-        if (roomNode) saveRoute(findLocalRoute(roomNode.id))
+      // Читаємо СВІЖИЙ стан після toggle
+      const fresh = useStore.getState()
+      if (fresh.selectedRoomId) {
+        const roomNode = fresh.graphNodes.find(n => n.roomId === fresh.selectedRoomId)
+        if (roomNode) {
+          const effectiveNodes = fresh.graphNodes.filter(n => {
+            if (n.isExit) return !fresh.blockedExits.some(idx => {
+              const ex = fresh.exits[idx]
+              return ex && Math.abs(n.x - ex.x) < 2 && Math.abs(n.y - ex.y) < 2
+            })
+            if (n.isDoor) return !fresh.blockedDoors.some(idx => {
+              const d = fresh.doors[idx]
+              return d && Math.abs(n.x - d.x) < 2 && Math.abs(n.y - d.y) < 2
+            })
+            return true
+          })
+          const result = findRouteWithMetrics(roomNode.id, effectiveNodes, fresh.graphEdges, fresh.algorithm === 'astar')
+          saveRoute(result ? { segments: [{ floorId: fresh.currentFloorId, path: result.path }] } : null)
+        }
       }
+      return
+    }
+
+    // ── Мульти-кімнатний вибір ──────────────────────────────
+    if (evacuationView === 'multi') {
+      const room = findRoomAtPixel(detectedRooms, px, py)
+      if (!room) return
+      toggleSelectedRoomId(room.id)
+      const fresh = useStore.getState()
+      computeMultiRoomPaths(fresh.selectedRoomIds)
       return
     }
 
@@ -177,5 +249,5 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     saveRoute(findLocalRoute(roomNode.id))
   }
 
-  return { handleEvacuationClick, computeAllPaths }
+  return { handleEvacuationClick, computeAllPaths, computeMultiRoomPaths }
 }
