@@ -295,20 +295,19 @@ export function aStar(startId, goalIds, adj, nodes) {
   return null
 }
 
-// ── Пошук маршруту з метриками (A* або Dijkstra) ─────────────
 export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true) {
   const exitNodes = nodes.filter(n => n.isExit)
   if (exitNodes.length === 0) return null
 
   const adj = buildAdjacency(nodes, edges)
-  const t0 = performance.now()
-  let path, visitedCount
+  
+  // Функція для пошуку A* (лише для виміру)
+  function runA() {
+    return aStar(startNodeId, exitNodes.map(n => n.id), adj, nodes)
+  }
 
-  if (useAstar) {
-    const result = aStar(startNodeId, exitNodes.map(n => n.id), adj, nodes)
-    path = result?.path ?? null
-    visitedCount = result?.visitedCount ?? 0
-  } else {
+  // Функція для пошуку Dijkstra (лише для виміру)
+  function runD() {
     const nodeMap = new Map(nodes.map(n => [n.id, n]))
     const { dist, prev } = dijkstra(startNodeId, adj)
     let bestExit = null, bestDist = Infinity
@@ -325,11 +324,29 @@ export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true)
       if (cur === startNodeId) break
       cur = prev.get(cur)
     }
-    path = reconstructed.length > 1 ? reconstructed : null
-    visitedCount = dist.size
+    return { path: reconstructed.length > 1 ? reconstructed : null, visitedCount: dist.size }
   }
 
-  const ms = performance.now() - t0
+  // 1. Початковий замір
+  const t0 = performance.now()
+  const result = useAstar ? runA() : runD()
+  let ms = performance.now() - t0
+
+  // 2. Якщо алгоритм відпрацював занадто швидко (< 1 мс), 
+  // повторюємо його 50 разів щоб отримати точний середній час, 
+  // інакше він буде "0.00"
+  if (ms < 1) {
+    const iters = 50
+    const t1 = performance.now()
+    for (let i = 0; i < iters; i++) {
+      if (useAstar) runA()
+      else runD()
+    }
+    ms = (performance.now() - t1) / iters
+  }
+
+  const path = result?.path ?? null
+  const visitedCount = result?.visitedCount ?? 0
 
   if (!path) return null
 
@@ -343,10 +360,14 @@ export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true)
     if (edge) distPx += edge.length
   }
 
+  // Якщо навіть середнє менше 0.01, показуємо "<0.01", щоб не було повних нулів
+  let formattedMs = ms.toFixed(2)
+  if (formattedMs === "0.00") formattedMs = "<0.01"
+
   return {
     path,
     algorithm: useAstar ? 'A*' : 'Dijkstra',
-    ms: ms.toFixed(2),
+    ms: formattedMs,
     visitedCount,
     distPx,
   }

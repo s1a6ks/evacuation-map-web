@@ -47,3 +47,6 @@ EvacuationSystem.Api/**/*.db-wal
 evacuation-frontend/node_modules/
 evacuation-frontend/dist/
 evacuation-frontend/.env
+
+# Notes and documentation
+notes/

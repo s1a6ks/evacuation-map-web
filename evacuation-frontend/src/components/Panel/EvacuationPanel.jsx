@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import useStore from '../../store/useStore'
 import { computeRouteMetrics, computeSafetyAnalysis } from '../../utils/evacAnalysis'
 
@@ -48,6 +49,8 @@ export default function EvacuationPanel() {
     selectedRoomIds, multiRoomPaths, clearMultiRoom,
     showEdgeWeights, setShowEdgeWeights,
   } = useStore()
+
+  const [showAllRooms, setShowAllRooms] = useState(false)
 
   // Активний маршрут (з multiFloorPath або currentPath)
   const activePath = (() => {
@@ -300,13 +303,22 @@ export default function EvacuationPanel() {
                       {d ? d.visited : '—'}
                     </td>
                   </tr>
-                  <tr>
+                  <tr className="border-b border-[#f5f5f5]">
                     <td className="px-2 py-[5px] text-[#aaa]">Шлях (м)</td>
                     <td className="px-2 py-[5px] text-center font-mono font-medium" style={{ color: cellColor('astar', shorterIs) }}>
                       {a ? pxToM(a.distPx).toFixed(1) : '—'}
                     </td>
                     <td className="px-2 py-[5px] text-center font-mono font-medium" style={{ color: cellColor('dijkstra', shorterIs) }}>
                       {d ? pxToM(d.distPx).toFixed(1) : '—'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-[5px] text-[#aaa]">Час евакуації (с)</td>
+                    <td className="px-2 py-[5px] text-center font-mono font-medium" style={{ color: cellColor('astar', shorterIs) }}>
+                      {a ? Math.round(pxToM(a.distPx) / WALK_SPEED) : '—'}
+                    </td>
+                    <td className="px-2 py-[5px] text-center font-mono font-medium" style={{ color: cellColor('dijkstra', shorterIs) }}>
+                      {d ? Math.round(pxToM(d.distPx) / WALK_SPEED) : '—'}
                     </td>
                   </tr>
                 </tbody>
@@ -404,7 +416,7 @@ export default function EvacuationPanel() {
           {analysis.roomRanking.length > 0 && (
             <Section title="Рейтинг кімнат">
               <div className="flex flex-col gap-[3px]">
-                {analysis.roomRanking.slice(0, 6).map((room) => {
+                {analysis.roomRanking.slice(0, showAllRooms ? undefined : 6).map((room) => {
                   const distVal = room.distM ? parseFloat(room.distM) : null
                   const barColor = !room.isReachable ? '#ff4422'
                     : distVal > 25 ? '#f5c542'
@@ -428,8 +440,21 @@ export default function EvacuationPanel() {
                     </div>
                   )
                 })}
-                {analysis.roomRanking.length > 6 && (
-                  <div className="text-[10px] text-[#bbb] pt-1">+{analysis.roomRanking.length - 6} кімнат...</div>
+                {analysis.roomRanking.length > 6 && !showAllRooms && (
+                  <div 
+                    className="text-[10px] text-[#bbb] pt-1 cursor-pointer hover:text-[#888]"
+                    onClick={() => setShowAllRooms(true)}
+                  >
+                    +{analysis.roomRanking.length - 6} кімнат... (розгорнути)
+                  </div>
+                )}
+                {analysis.roomRanking.length > 6 && showAllRooms && (
+                  <div 
+                    className="text-[10px] text-[#bbb] pt-1 cursor-pointer hover:text-[#888]"
+                    onClick={() => setShowAllRooms(false)}
+                  >
+                    ↑ Згорнути список
+                  </div>
                 )}
               </div>
             </Section>

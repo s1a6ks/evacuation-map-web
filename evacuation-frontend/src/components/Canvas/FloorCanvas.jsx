@@ -10,7 +10,9 @@ export default function FloorCanvas() {
   const canvasRef = useRef(null)
   const { mode, scale, offset, setTransform, floors, currentFloorId, addFloor, switchFloor, removeFloor, renameFloor, setSelectedStairInfo } = useStore()
   const isPanning  = useRef(false)
+  const hasPanned  = useRef(false)
   const panStart   = useRef({ x: 0, y: 0 })
+  const mouseStart = useRef({ x: 0, y: 0 })
 
   const [editingFloor, setEditingFloor]     = useState(null)
   const [floorNameInput, setFloorNameInput] = useState('')
@@ -65,15 +67,17 @@ export default function FloorCanvas() {
 
   // ── Pan ─────────────────────────────────────────────────
   const handleMouseDown = useCallback((e) => {
-    if (e.button === 1 || e.button === 2) {
-      isPanning.current = true
-      panStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y }
-      e.preventDefault()
-    }
+    isPanning.current = true
+    hasPanned.current = false
+    mouseStart.current = { x: e.clientX, y: e.clientY }
+    panStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y }
   }, [offset])
 
   const handlePanMove = useCallback((e) => {
     if (isPanning.current) {
+      if (Math.abs(e.clientX - mouseStart.current.x) > 3 || Math.abs(e.clientY - mouseStart.current.y) > 3) {
+        hasPanned.current = true
+      }
       setTransform(scale, {
         x: e.clientX - panStart.current.x,
         y: e.clientY - panStart.current.y,
@@ -84,11 +88,14 @@ export default function FloorCanvas() {
   }, [isPanning, scale, setTransform, handleMouseMove])
 
   const handleMouseUp = useCallback((e) => {
-    if (e.button === 1 || e.button === 2) isPanning.current = false
+    isPanning.current = false
   }, [])
 
   function handleUnifiedClick(e) {
-    if (isPanning.current) return
+    if (hasPanned.current) {
+      hasPanned.current = false
+      return
+    }
     if (mode === 'evacuation') {
       setSelectedStairInfo(null)
       handleEvacuationClick(e)

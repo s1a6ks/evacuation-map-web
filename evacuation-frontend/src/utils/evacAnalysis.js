@@ -88,7 +88,32 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
   adj.forEach((neighbors, id) => {
     const node = graphNodes.find(n => n.id === id)
     if (!node || node.isExit || node.isStair || node.isDoor) return
-    if (neighbors.length <= 1) deadendIds.add(id)
+    
+    if (neighbors.length === 0) {
+      deadendIds.add(id)
+    } else if (neighbors.length === 1) {
+      // Кімната з 1 дверима. Перевіряємо, куди вона веде
+      const doorId = neighbors[0].to
+      const doorNeighbors = adj.get(doorId) || []
+      
+      const leadsToSafeZone = doorNeighbors.some(n => {
+        const neighborNode = graphNodes.find(gn => gn.id === n.to)
+        if (!neighborNode) return false
+        if (neighborNode.isExit) return true // Веде одразу на вулицю
+        if (neighborNode.roomId != null && neighborNode.id !== id) {
+          const roomObj = detectedRooms.find(r => r.id === neighborNode.roomId)
+          // Якщо це коридор, хол або вестибюль — це нормальний вихід, а не тупик
+          const lbl = (roomObj?.label || '').toLowerCase()
+          return lbl.includes('коридор') || lbl.includes('хол') || lbl.includes('вестибюль')
+        }
+        return false
+      })
+
+      // Якщо кімната веде тільки в іншу звичайну кімнату (яка не є коридором), тоді це тупик
+      if (!leadsToSafeZone) {
+        deadendIds.add(id)
+      }
+    }
   })
 
   // 4. Рейтинг кімнат за відстанню до найближчого виходу
@@ -155,9 +180,19 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
 
   // 7. Вузькі місця
   const bottlenecks = graphNodes
-    .filter(n => !n.isExit)
-    .map(n => ({ ...n, degree: (adj.get(n.id) ?? []).length }))
-    .filter(n => n.degree >= 3)
+    .filter(n => !n.isExit && !n.isDoor && n.roomId != null) // Двері технічно мають багато ребер для транзиту, відкидаємо їх
+    .map(n => {
+      const room = detectedRooms.find(r => r.id === n.roomId)
+      const degree = (adj.get(n.id) ?? []).length
+      return { ...n, degree, room }
+    })
+    .filter(n => {
+      if (n.degree < 3) return false // Тільки перехрестя
+      // Якщо це великий коридор — він розрахований на високий трафік, це не вузьке місце
+      const area = parseFloat(n.room?.areaM2 || 0)
+      if (area > 50 && (n.room?.label || '').toLowerCase().includes('коридор')) return false
+      return true
+    })
     .sort((a, b) => b.degree - a.degree)
     .slice(0, 3)
 
