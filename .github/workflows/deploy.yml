@@ -3,7 +3,7 @@ name: Deploy Vite to GitHub Pages
 on:
   push:
     branches:
-      - master # Перевірте, якщо ваша гілка називається main — змініть на main
+      - main
 
 jobs:
   deploy:
