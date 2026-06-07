@@ -126,10 +126,10 @@ export default function Toolbar() {
             onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; if (!active) e.currentTarget.style.color = '#888' }}
           >
             <t.Icon />
-            <div className="absolute left-[44px] top-1/2 -translate-y-1/2 bg-[#1a1a1a] text-white text-[11px] font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-lg">
-              {t.label}
-              <span className="ml-2 text-[#666] font-mono text-[10px]">{t.shortcut}</span>
-            </div>
+              <div className="absolute left-[44px] top-1/2 -translate-y-1/2 bg-[#1a1a1a] text-white text-[11px] font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-lg">
+                {t.label}
+                <span className="ml-2 text-[#8a8a8a] font-mono text-[10px]">{t.shortcut}</span>
+              </div>
           </button>
         )
       })}
@@ -149,7 +149,7 @@ export default function Toolbar() {
         >
           <IconUndo />
           <div className="absolute left-[44px] top-1/2 -translate-y-1/2 bg-[#1a1a1a] text-white text-[11px] px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-            Скасувати <span className="text-[#666] font-mono text-[10px]">Ctrl+Z</span>
+            Скасувати <span className="text-[#8a8a8a] font-mono text-[10px]">Ctrl+Z</span>
           </div>
         </button>
 

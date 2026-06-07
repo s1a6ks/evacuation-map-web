@@ -179,15 +179,6 @@ export function generateGraph(detectedRooms, doors, exits, stairs) {
   // ── 6. Зв'язність: висячі транзитні вузли ────────────────
   const allTransitNodes = nodes.filter(n => n.isDoor || n.isExit)
 
-  function getConnectedIds(nodeId) {
-    const ids = new Set()
-    edges.forEach(e => {
-      if (e.from === nodeId) ids.add(e.to)
-      if (e.to === nodeId) ids.add(e.from)
-    })
-    return ids
-  }
-
   function getEdgeCount(nodeId) {
     return edges.filter(e => e.from === nodeId || e.to === nodeId).length
   }
@@ -231,5 +222,5 @@ export default function useGraphGen() {
 
     const { nodes, edges } = generateGraph(detectedRooms, doors, exits, stairs)
     setGraph(nodes, edges)
-  }, [detectedRooms, doors, exits, stairs]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [detectedRooms, doors, exits, stairs, setGraph])
 }

@@ -1,4 +1,4 @@
-import useStore from '../../../store/useStore'
+﻿import useStore from '../../../store/useStore'
 
 const GRID = 20
 const METER = 0.5
@@ -170,7 +170,7 @@ export default function useRender(canvasRef) {
     detectedRooms, graphNodes, graphEdges,
     currentPath, multiFloorPath, allPaths, evacuationView, tool, selectedRoomId, viewMode,
     mode, currentFloorId, blockedExits, blockedDoors,
-    multiRoomPaths, showEdgeWeights, selectedRoomIds,
+    multiRoomPaths, showEdgeWeights,
   } = useStore()
 
   const render = (drawing, drawStart, mousePos, scale = 1, offset = { x: 0, y: 0 }) => {
@@ -466,7 +466,7 @@ export default function useRender(canvasRef) {
         } else {
           ctx.beginPath(); ctx.moveTo(exit.x, exit.y - hw); ctx.lineTo(exit.x, exit.y + hw); ctx.stroke()
         }
-        const text = `${exit.label || 'EXIT'} ↑`
+        const text = `${exit.label || 'ВИХІД'} ↑`
         const bw = ctx.measureText(text).width + 10 * invScale
         ctx.fillStyle = 'rgba(0,166,81,0.13)'
         ctx.beginPath()

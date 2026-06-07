@@ -62,7 +62,7 @@ export default function useSaveLoad() {
   const {
     walls, doors, exits, stairs, extinguishers,
     graphNodes, graphEdges, detectedRooms,
-    setBuildingId, setFloorId, setIdMaps,
+    setBuildingId, setFloorId, setIdMaps, currentPlanId, setCurrentPlanId,
     setGraph, clearAll,
     isSaving, setIsSaving,
     lastSaved, setLastSaved,
@@ -90,11 +90,10 @@ export default function useSaveLoad() {
 
       // 1. ── Завжди зберігаємо локально першим ────────────────
       const plans = getLsPlans()
-      const existingIdx = plans.findIndex(p => p.name === planName)
+      const existingIdx = plans.findIndex(p => p.id === currentPlanId)
       const existingEntry = existingIdx >= 0 ? plans[existingIdx] : null
 
-      // Використовуємо існуючий id або генеруємо локальний
-      const localId = existingEntry?.id ?? useStore.getState().buildingId ?? genLocalId()
+      const localId = existingEntry?.id ?? currentPlanId ?? genLocalId()
 
       const localEntry = {
         id:         localId,
@@ -112,6 +111,7 @@ export default function useSaveLoad() {
         plans.push(localEntry)
       }
       setLsPlans(plans)
+      setCurrentPlanId(localId)
       setLastSaved(new Date())
       setCurrentPlanName(planName)
 
@@ -129,7 +129,7 @@ export default function useSaveLoad() {
         // Оновлюємо localStorage запис з бекенд-IDs
         // id НЕ перезаписуємо — URL має залишатись стабільним (local_xxx або числовий)
         const freshPlans = getLsPlans()
-        const idx = freshPlans.findIndex(p => p.name === planName)
+        const idx = freshPlans.findIndex(p => p.id === localId)
         if (idx >= 0) {
           freshPlans[idx] = {
             ...freshPlans[idx],
@@ -148,14 +148,14 @@ export default function useSaveLoad() {
     } finally {
       setIsSaving(false)
     }
-  }, [walls, doors, exits, stairs, extinguishers, graphNodes, graphEdges, detectedRooms, currentPlanName,
-      setBuildingId, setFloorId, setIdMaps, setIsSaving, setLastSaved, setCurrentPlanName])
+  }, [walls, doors, exits, stairs, extinguishers, graphNodes, graphEdges, detectedRooms, currentPlanId, currentPlanName,
+      setBuildingId, setCurrentPlanId, setFloorId, setIdMaps, setIsSaving, setLastSaved, setCurrentPlanName])
 
   // ── LOAD ────────────────────────────────────────────────────
   const loadPlan = useCallback(async (plan) => {
     clearAll()
 
-    const { raw, buildingId: bId, floorId: fId, name } = plan
+    const { id, raw, buildingId: bId, floorId: fId, name } = plan
     const { addWall, addDoor, addExit, addStair, addExtinguisher } = useStore.getState()
 
     if (raw) {
@@ -168,6 +168,7 @@ export default function useSaveLoad() {
 
     setBuildingId(bId ?? null)
     setFloorId(fId ?? null)
+    setCurrentPlanId(id ?? null)
     setCurrentPlanName(name)
 
     // Намагаємось завантажити граф з бекенду якщо є floorId
@@ -179,13 +180,14 @@ export default function useSaveLoad() {
         console.warn('[useSaveLoad] backend offline — graph will regenerate locally')
       }
     }
-  }, [clearAll, setBuildingId, setFloorId, setCurrentPlanName, setGraph])
+  }, [clearAll, setBuildingId, setCurrentPlanId, setFloorId, setCurrentPlanName, setGraph])
 
   // ── NEW PLAN ─────────────────────────────────────────────────
   const newPlan = useCallback((name = 'Новий план') => {
     clearAll()
+    setCurrentPlanId(null)
     setCurrentPlanName(name)
-  }, [clearAll, setCurrentPlanName])
+  }, [clearAll, setCurrentPlanId, setCurrentPlanName])
 
   // ── AUTOSAVE ─────────────────────────────────────────────────
   useEffect(() => {

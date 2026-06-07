@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import useStore from '../../store/useStore'
 import EvacuationPanel from './EvacuationPanel'
 import { exportPlanToPDF, exportAllFloorsToPNG } from '../../utils/pdfExport'
@@ -90,8 +90,8 @@ export default function RightPanel() {
     >
       {/* Header + Export */}
       <div className="px-4 py-3 border-b border-[#f0f0f0] flex items-center justify-between flex-shrink-0">
-        <div className="text-[11px] font-semibold text-[#999] uppercase tracking-widest">
-          {mode === 'constructor' ? 'Конструктор' : '🔥 Евакуація'}
+        <div className="text-[11px] font-semibold text-[#8d8d8d] uppercase tracking-widest">
+          {mode === 'constructor' ? 'Конструктор' : 'Евакуація'}
         </div>
         <div className="flex gap-1">
           <button
@@ -123,7 +123,7 @@ export default function RightPanel() {
         <>
           {/* Stats */}
           <div className="px-4 py-3 border-b border-[#f0f0f0]">
-            <div className="text-[10px] font-semibold text-[#bbb] uppercase tracking-widest mb-2">План</div>
+            <div className="text-[10px] font-semibold text-[#8d8d8d] uppercase tracking-widest mb-2">План</div>
             <div className="flex flex-col gap-2">
               <Row label="Стін"    value={walls.length} />
               <Row label="Дверей"  value={doors.length} />
@@ -136,7 +136,7 @@ export default function RightPanel() {
           {/* Exits list */}
           {exits.length > 0 && (
             <div className="px-4 py-3 border-b border-[#f0f0f0]">
-              <div className="text-[10px] font-semibold text-[#bbb] uppercase tracking-widest mb-2">Виходи</div>
+              <div className="text-[10px] font-semibold text-[#8d8d8d] uppercase tracking-widest mb-2">Виходи</div>
               <div className="flex flex-col gap-[2px]">
                 {exits.map((exit, idx) => (
                   editingExit === idx ? (
@@ -160,12 +160,12 @@ export default function RightPanel() {
                       key={idx}
                       onDoubleClick={() => { setEditingExit(idx); setExitNameInput(exit.label || `Вихід ${idx + 1}`) }}
                       className="flex items-center gap-2 py-[6px] px-2 rounded-md hover:bg-[#f0f0f0] transition-all text-left w-full"
-                      title="Двічі клікни щоб перейменувати"
+                      title="Подвійний клік, щоб перейменувати"
                     >
                       <div className="w-2 h-2 rounded-sm flex-shrink-0 bg-[#22c984]" />
-                      <span className="text-[12px] flex-1 truncate text-[#555]">
-                        {exit.label || `Вихід ${idx + 1}`}
-                      </span>
+                        <span className="text-[12px] flex-1 truncate text-[#444]">
+                          {exit.label || `Вихід ${idx + 1}`}
+                        </span>
                     </button>
                   )
                 ))}
@@ -176,7 +176,7 @@ export default function RightPanel() {
           {/* Graph — тільки в advanced */}
           {viewMode === 'advanced' && (
             <div className="px-4 py-3 border-b border-[#f0f0f0]">
-              <div className="text-[10px] font-semibold text-[#bbb] uppercase tracking-widest mb-2">Граф</div>
+              <div className="text-[10px] font-semibold text-[#8d8d8d] uppercase tracking-widest mb-2">Граф</div>
               <div className="flex flex-col gap-2">
                 <Row label="Вузлів" value={graphNodes.length} />
                 <Row label="Ребер"  value={graphEdges.length} />
@@ -188,10 +188,10 @@ export default function RightPanel() {
           {selectedStairInfo && selectedStairInfo.floorId === currentFloorId && (
             <div className="px-4 py-3 border-b border-[#f0f0f0] bg-[#fffbeb]">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] font-semibold text-[#92400e] uppercase tracking-widest">⊞ Сходи</div>
+                <div className="text-[10px] font-semibold text-[#92400e] uppercase tracking-widest">Сходи</div>
                 <button
                   onClick={() => setSelectedStairInfo(null)}
-                  className="text-[10px] text-[#bbb] hover:text-[#ff4422]"
+                  className="text-[10px] text-[#999] hover:text-[#ff4422]"
                 >✕</button>
               </div>
 
@@ -200,7 +200,7 @@ export default function RightPanel() {
               </div>
 
               {otherFloors.length === 0 ? (
-                <div className="text-[11px] text-[#bbb] py-1">
+                <div className="text-[11px] text-[#8d8d8d] py-1">
                   Додайте ще поверхи щоб з'єднати сходи
                 </div>
               ) : (
@@ -218,7 +218,7 @@ export default function RightPanel() {
                   </select>
                   {stairLink && (
                     <div className="mt-1.5 text-[10px] text-[#22c984]">
-                      ✓ З'єднано з {floors.find(f => f.id === stairLink.toFloorId)?.name}
+                      З'єднано з {floors.find(f => f.id === stairLink.toFloorId)?.name}
                     </div>
                   )}
                 </>
@@ -229,7 +229,7 @@ export default function RightPanel() {
           {/* Rooms list */}
           {detectedRooms.length > 0 && (
             <div className="px-4 py-3 border-b border-[#f0f0f0] flex-1 overflow-y-auto">
-              <div className="text-[10px] font-semibold text-[#bbb] uppercase tracking-widest mb-2">Кімнати</div>
+              <div className="text-[10px] font-semibold text-[#8d8d8d] uppercase tracking-widest mb-2">Кімнати</div>
               <div className="flex flex-col gap-[2px]">
                 {detectedRooms.map((room, idx) => {
                   const isSelected = selectedRoomId === room.id
@@ -256,7 +256,7 @@ export default function RightPanel() {
                           ? 'bg-[#fff0ee] ring-1 ring-[#ff4422]/30'
                           : 'hover:bg-[#f0f0f0]'
                       }`}
-                      title="Двічі клікни щоб перейменувати"
+                      title="Подвійний клік, щоб перейменувати"
                     >
                       <div
                         className="w-2 h-2 rounded-sm flex-shrink-0"
@@ -265,7 +265,7 @@ export default function RightPanel() {
                       <span className={`text-[12px] flex-1 truncate ${isSelected ? 'text-[#ff4422] font-medium' : 'text-[#555]'}`}>
                         {room.label}
                       </span>
-                      <span className="text-[10px] text-[#bbb] font-mono flex-shrink-0">
+                      <span className="text-[10px] text-[#9a9a9a] font-mono flex-shrink-0">
                         {room.areaM2}м²
                       </span>
                     </button>
@@ -278,8 +278,7 @@ export default function RightPanel() {
           {/* Empty state */}
           {!walls.length && !selectedStairInfo && (
             <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center">
-              <div className="text-[32px] opacity-20">🗺</div>
-              <div className="text-[11px] text-[#bbb] leading-relaxed">
+                            <div className="text-[11px] text-[#8d8d8d] leading-relaxed">
                 Оберіть інструмент і намалюйте план
               </div>
             </div>
@@ -293,7 +292,7 @@ export default function RightPanel() {
 function Row({ label, value, color }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[12px] text-[#999]">{label}</span>
+      <span className="text-[12px] text-[#7a7a7a]">{label}</span>
       <span className="text-[12px] font-mono font-medium" style={{ color: color || '#1a1a1a' }}>{value}</span>
     </div>
   )

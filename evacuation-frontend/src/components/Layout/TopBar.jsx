@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+﻿import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useStore from '../../store/useStore'
 import useSaveLoad, { getLsPlans } from '../../hooks/useSaveLoad'
@@ -131,7 +131,7 @@ export default function TopBar() {
                       placeholder="Назва плану..."
                       className="flex-1 text-[12px] bg-[#f7f7f7] border border-[#e0e0e0] rounded-md px-2 py-1 outline-none focus:border-[#ff4422]"
                     />
-                    <button onClick={handleNewPlan} className="text-[11px] text-white bg-[#ff4422] px-2 py-1 rounded-md hover:bg-[#e03010]">OK</button>
+                    <button onClick={handleNewPlan} className="text-[11px] text-[#555] bg-[#f0f0f0] px-2 py-1 rounded-md border border-transparent hover:bg-[#e8e8e8] hover:border-[#ddd] transition-colors">OK</button>
                     <button onClick={() => setNewPlanInput(false)} className="text-[11px] text-[#999]">✕</button>
                   </div>
                 )}
@@ -210,7 +210,7 @@ export default function TopBar() {
                   : 'text-[#999] hover:text-[#555]'
                 }`}
             >
-              🔥 Евакуація
+              Евакуація
             </button>
           </div>
         </div>
@@ -258,9 +258,9 @@ export default function TopBar() {
           <button
             onClick={() => save()}
             disabled={isSaving || walls.length === 0}
-            className="flex items-center gap-1.5 px-3 py-[5px] bg-[#ff4422] text-white text-[12px] font-medium rounded-md hover:bg-[#e03010] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-1.5 px-3 py-[5px] rounded-md bg-[#f0f0f0] hover:bg-[#e8e8e8] transition-all text-[12px] text-[#555] border border-transparent hover:border-[#ddd] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isSaving ? '...' : '↑ Зберегти'}
+            {isSaving ? '...' : 'Зберегти'}
           </button>
 
           <div className="flex items-center gap-1.5 flex-shrink-0" title={
@@ -273,7 +273,7 @@ export default function TopBar() {
             <span className={`text-[11px] transition-colors ${backendOnline === null ? 'text-[#f5c542]' :
                 backendOnline ? 'text-[#bbb]' : 'text-[#ff4422]'
               }`}>
-              {backendOnline === null ? '...' : backendOnline ? 'API' : 'offline'}
+              {backendOnline === null ? '...' : backendOnline ? 'API' : 'офлайн'}
             </span>
           </div>
         </div>

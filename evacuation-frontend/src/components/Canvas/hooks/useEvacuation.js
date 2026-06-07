@@ -50,7 +50,7 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     stairLinks,
     blockedExits, blockedDoors,
     toggleBlockedExit, toggleBlockedDoor,
-    selectedRoomIds, toggleSelectedRoomId, setMultiRoomPaths,
+    toggleSelectedRoomId, setMultiRoomPaths,
   } = useStore()
 
   function getAllFloorData() {

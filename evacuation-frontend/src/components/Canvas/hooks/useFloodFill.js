@@ -117,11 +117,11 @@ export function detectRooms(walls) {
 }
 
 // ── Hook ─────────────────────────────────────────────────────
-export default function useFloodFill(canvasRef) {
+export default function useFloodFill() {
   const { walls, setDetectedRooms } = useStore()
 
   useEffect(() => {
     const rooms = detectRooms(walls)
     setDetectedRooms(rooms)
-  }, [walls]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [walls, setDetectedRooms])
 }

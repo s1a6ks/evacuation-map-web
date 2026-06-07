@@ -7,7 +7,7 @@ const METER = 0.5
 //  ЕВАКУАЦІЙНІ МАРШРУТИ (canvas helpers)
 // ═══════════════════════════════════════════════════════════════
 
-function drawFloorChangeBadge(ctx, node, invScale, color) {
+function drawFloorChangeBadge(ctx, node, invScale) {
   const x = node.x, y = node.y
   const text = `↓ ${node.targetFloorName}`
   const fontSize = 9 * invScale, pad = 4 * invScale, R = 3 * invScale
@@ -88,7 +88,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   })
 
   if (last.isFloorChange) {
-    drawFloorChangeBadge(ctx, last, invScale, color)
+    drawFloorChangeBadge(ctx, last, invScale)
   } else if (last.isExit) {
     ctx.fillStyle = color; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5 * invScale
     ctx.beginPath(); ctx.arc(last.x, last.y, 10 * invScale, 0, Math.PI * 2); ctx.fill(); ctx.stroke()

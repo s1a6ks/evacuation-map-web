@@ -52,7 +52,7 @@ export default function FloorCanvas() {
     resize()
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -87,7 +87,7 @@ export default function FloorCanvas() {
     handleMouseMove(e)
   }, [isPanning, scale, setTransform, handleMouseMove])
 
-  const handleMouseUp = useCallback((e) => {
+  const handleMouseUp = useCallback(() => {
     isPanning.current = false
   }, [])
 

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+﻿import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getLsPlans } from '../hooks/useSaveLoad'
 
 // ── SVG icons ────────────────────────────────────────────────
@@ -50,13 +50,6 @@ function IconGrid() {
       <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
       <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
       <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  )
-}
-function IconList() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M2 3.5h10M2 7h10M2 10.5h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   )
 }
@@ -276,25 +269,14 @@ function NavItem({ icon, label, active, onClick }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const location  = useLocation()
   const [plans, setPlans]           = useState(() => getLsPlans())
   const [navSection, setNavSection] = useState('recent') // 'recent' | 'all' | 'trash'
   const [search, setSearch]         = useState('')
-  const [view, setView]             = useState('grid')
   const [sort, setSort]             = useState('date')
   const [sortOpen, setSortOpen]     = useState(false)
   const [showModal, setShowModal]   = useState(false)
   const [newName, setNewName]       = useState('')
   const inputRef                    = useRef(null)
-
-  useEffect(() => {
-    const fresh = getLsPlans()
-    setPlans(prev => {
-      const prevStr = JSON.stringify(prev)
-      const freshStr = JSON.stringify(fresh)
-      return prevStr === freshStr ? prev : fresh
-    })
-  }, [location.key])
 
   useEffect(() => {
     function onFocus() { setPlans(getLsPlans()) }
@@ -321,8 +303,9 @@ export default function Dashboard() {
   function handleRestore(planId) {
     savePlans(plans.map(p => {
       if (p.id !== planId) return p
-      const { deletedAt, ...rest } = p
-      return rest
+      const restored = { ...p }
+      delete restored.deletedAt
+      return restored
     }))
   }
 
@@ -391,9 +374,6 @@ export default function Dashboard() {
           />
         </nav>
 
-        <div className="px-4 py-3 border-t border-[#ebebeb]">
-          <div className="text-[10px] text-[#bbb] font-mono">v1.0 · диплом 2026</div>
-        </div>
       </aside>
 
       {/* ── Main ── */}
@@ -433,20 +413,6 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* View toggle */}
-          <div className="flex items-center gap-0.5 bg-[#f4f4f4] rounded-lg p-0.5">
-            {[['grid', <IconGrid />], ['list', <IconList />]].map(([id, icon]) => (
-              <button key={id} onClick={() => setView(id)}
-                className="w-7 h-7 rounded-md flex items-center justify-center transition-all"
-                style={{
-                  background: view === id ? '#fff' : 'transparent',
-                  color: view === id ? '#1a1a1a' : '#bbb',
-                  boxShadow: view === id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                }}
-              >{icon}</button>
-            ))}
           </div>
 
           {/* New */}
@@ -502,48 +468,28 @@ export default function Dashboard() {
                 {search ? `Результати · ${filtered.length}` : sectionLabel}
               </div>
 
-              {view === 'grid' ? (
-                <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
-                  {!isTrashView && (
-                    <button
-                      onClick={() => setShowModal(true)}
-                      className="rounded-xl border-2 border-dashed border-[#e0e0e0] hover:border-[#b0b0b0] transition-all flex flex-col items-center justify-center gap-2 text-[#ccc] hover:text-[#888]"
-                      style={{ height: '200px' }}
-                    >
-                      <div className="w-9 h-9 rounded-xl border-[1.5px] border-current flex items-center justify-center">
-                        <IconPlus />
-                      </div>
-                      <span className="text-[12px] font-medium">Новий план</span>
-                    </button>
-                  )}
-                  {filtered.map(p => (
-                    <PlanCard key={p.id} plan={p} view="grid"
-                      onOpen={pl => navigate(`/plan/${pl.id}`)}
-                      onDelete={handleDelete}
-                      onRestore={handleRestore}
-                      onDeleteForever={handleDeleteForever}
-                      isTrash={isTrashView} />
-                  ))}
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center gap-4 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#bbb] border-b border-[#f0f0f0] mb-1">
-                    <div className="w-12 flex-shrink-0" />
-                    <div className="flex-1">Назва</div>
-                    <div className="w-28 text-right">Змінено</div>
-                    <div className="w-32 text-right">Елементи</div>
-                    <div className="w-6" />
-                  </div>
-                  {filtered.map(p => (
-                    <PlanCard key={p.id} plan={p} view="list"
-                      onOpen={pl => navigate(`/plan/${pl.id}`)}
-                      onDelete={handleDelete}
-                      onRestore={handleRestore}
-                      onDeleteForever={handleDeleteForever}
-                      isTrash={isTrashView} />
-                  ))}
-                </div>
-              )}
+              <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
+                {!isTrashView && (
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="rounded-xl border-2 border-dashed border-[#e0e0e0] hover:border-[#b0b0b0] transition-all flex flex-col items-center justify-center gap-2 text-[#ccc] hover:text-[#888]"
+                    style={{ height: '200px' }}
+                  >
+                    <div className="w-9 h-9 rounded-xl border-[1.5px] border-current flex items-center justify-center">
+                      <IconPlus />
+                    </div>
+                    <span className="text-[12px] font-medium">Новий план</span>
+                  </button>
+                )}
+                {filtered.map(p => (
+                  <PlanCard key={p.id} plan={p} view="grid"
+                    onOpen={pl => navigate(`/plan/${pl.id}`)}
+                    onDelete={handleDelete}
+                    onRestore={handleRestore}
+                    onDeleteForever={handleDeleteForever}
+                    isTrash={isTrashView} />
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -556,13 +502,13 @@ export default function Dashboard() {
           onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-[340px] p-6">
             <div className="text-[15px] font-bold text-[#1a1a1a] mb-1">Новий план</div>
-            <div className="text-[12px] text-[#aaa] mb-4">Введіть назву евакуаційного плану</div>
+            <div className="text-[12px] text-[#aaa] mb-4">Введіть назву плану</div>
             <input
               ref={inputRef}
               value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowModal(false) }}
-              placeholder="Наприклад: Офіс 3 поверх..."
+              placeholder="Назва плану"
               className="w-full text-[13px] bg-[#f7f7f7] border border-[#e8e8e8] rounded-xl px-4 py-3 outline-none focus:border-[#b0b0b0] focus:bg-white transition-all mb-4"
             />
             <div className="flex gap-2">
@@ -571,7 +517,7 @@ export default function Dashboard() {
                 Скасувати
               </button>
               <button onClick={handleCreate}
-                className="flex-1 py-2.5 rounded-xl text-[12.5px] text-white font-semibold bg-[#1a1a1a] hover:bg-[#333] transition-colors">
+                className="flex-1 py-2.5 rounded-xl text-[12.5px] text-[#555] font-semibold bg-[#f0f0f0] border border-transparent hover:bg-[#e8e8e8] hover:border-[#ddd] transition-colors">
                 Створити
               </button>
             </div>

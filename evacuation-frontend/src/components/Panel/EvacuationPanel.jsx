@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import useStore from '../../store/useStore'
 import { computeRouteMetrics, computeSafetyAnalysis } from '../../utils/evacAnalysis'
 
@@ -17,21 +17,18 @@ function pxToM(px) { return (px / GRID) * METER }
 function Section({ title, children }) {
   return (
     <div className="px-4 py-3 border-b border-[#f0f0f0]">
-      <div className="text-[10px] font-semibold text-[#bbb] uppercase tracking-widest mb-2">{title}</div>
+      <div className="text-[10px] font-semibold text-[#9a9a9a] uppercase tracking-widest mb-2">{title}</div>
       {children}
     </div>
   )
 }
 
-function MetricRow({ icon, label, value, sub, highlight }) {
+function MetricRow({ label, value, sub, highlight }) {
   return (
-    <div className="flex items-start gap-2 py-[4px]">
-      <span className="text-[13px] mt-[1px] flex-shrink-0">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <div className="text-[11px] text-[#888]">{label}</div>
-        <div className="text-[12px] font-medium" style={{ color: highlight || '#1a1a1a' }}>{value}</div>
-        {sub && <div className="text-[10px] text-[#bbb] font-mono">{sub}</div>}
-      </div>
+    <div className="py-[4px]">
+      <div className="text-[11px] text-[#787878]">{label}</div>
+      <div className="text-[12px] font-medium" style={{ color: highlight || '#1a1a1a' }}>{value}</div>
+      {sub && <div className="text-[10px] text-[#9a9a9a] font-mono">{sub}</div>}
     </div>
   )
 }
@@ -91,10 +88,10 @@ export default function EvacuationPanel() {
             </button>
           ))}
         </div>
-        <div className="mt-1.5 text-[10px] text-[#bbb] leading-relaxed">
+        <div className="mt-1.5 text-[10px] text-[#8d8d8d] leading-relaxed">
           {algorithm === 'astar'
-            ? 'A* — евристика, швидше на великих планах'
-            : 'Dijkstra — гарантує оптимальний шлях'}
+            ? 'A* зазвичай працює швидше на великих планах'
+            : 'Dijkstra стабільно знаходить найкоротший шлях'}
         </div>
         <button
           onClick={() => setShowEdgeWeights(!showEdgeWeights)}
@@ -134,10 +131,10 @@ export default function EvacuationPanel() {
               </button>
             ))}
           </div>
-          <div className="text-[10px] text-[#bbb] leading-relaxed">
-            {evacuationView === 'single' && 'Клікніть на кімнату для маршруту'}
-            {evacuationView === 'multi' && `Клікайте кілька кімнат — повторно знімає${selectedRoomIds?.length > 0 ? ` · ${selectedRoomIds.length} обрано` : ''}`}
-            {evacuationView === 'all' && `Клікніть на полотно щоб показати всі маршрути${allPaths.length > 0 ? ` · ${allPaths.length} маршрутів` : ''}`}
+          <div className="text-[10px] text-[#8d8d8d] leading-relaxed">
+            {evacuationView === 'single' && 'Оберіть кімнату на плані'}
+            {evacuationView === 'multi' && `Оберіть кілька кімнат${selectedRoomIds?.length > 0 ? ` · ${selectedRoomIds.length} обрано` : ''}`}
+            {evacuationView === 'all' && `Натисніть на полотно, щоб показати всі маршрути${allPaths.length > 0 ? ` · ${allPaths.length} маршрутів` : ''}`}
           </div>
         </div>
       </Section>
@@ -146,13 +143,13 @@ export default function EvacuationPanel() {
       {evacuationView === 'multi' && (
         <Section title="Обрані кімнати">
           {!selectedRoomIds?.length ? (
-            <div className="text-[11px] text-[#bbb] py-1 leading-relaxed">
-              👆 Клікніть на кілька кімнат щоб порівняти маршрути
+            <div className="text-[11px] text-[#8d8d8d] py-1 leading-relaxed">
+              Оберіть кілька кімнат на плані, щоб порівняти маршрути
             </div>
           ) : (
             <>
               <div className="flex flex-col gap-[4px] mb-2">
-                {selectedRoomIds.map((roomId, i) => {
+                {selectedRoomIds.map((roomId) => {
                   const entry = multiRoomPaths?.[roomId]
                   const room = detectedRooms.find(r => r.id === roomId)
                   const distM = entry?.distPx ? ((entry.distPx / 20) * 0.5).toFixed(1) : null
@@ -182,16 +179,16 @@ export default function EvacuationPanel() {
       {evacuationView !== 'multi' && (
         <Section title="Маршрут">
           {!selectedRoom ? (
-            <div className="text-[11px] text-[#bbb] py-1 leading-relaxed">
-              👆 Клікніть на кімнату щоб побудувати маршрут до виходу
+            <div className="text-[11px] text-[#8d8d8d] py-1 leading-relaxed">
+              Оберіть кімнату на плані, щоб побудувати маршрут до виходу
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <div className="text-[11px] text-[#888]">Обрана кімната</div>
+                  <div className="text-[11px] text-[#787878]">Обрана кімната</div>
                   <div className="text-[13px] font-semibold text-[#1a1a1a]">{selectedRoom.label}</div>
-                  <div className="text-[10px] text-[#bbb] font-mono">{selectedRoom.areaM2} м²</div>
+                  <div className="text-[10px] text-[#9a9a9a] font-mono">{selectedRoom.areaM2} м²</div>
                 </div>
                 <button
                   onClick={handleClearRoute}
@@ -204,20 +201,17 @@ export default function EvacuationPanel() {
               {metrics ? (
                 <>
                   <MetricRow
-                    icon="📏"
                     label="Відстань"
                     value={`${metrics.distanceM} м`}
                     sub={`${metrics.nodeCount} вузлів · ${algorithm.toUpperCase()}`}
                   />
                   <MetricRow
-                    icon="⏱"
                     label="Орієнтовний час"
                     value={`~${metrics.timeS} сек`}
                     sub="швидкість 1.4 м/с"
                   />
                   {metrics.doorCount > 0 && (
                     <MetricRow
-                      icon="🚪"
                       label="Проходів"
                       value={`${metrics.doorCount}`}
                     />
@@ -228,7 +222,7 @@ export default function EvacuationPanel() {
                     if (dist > 25) {
                       return (
                         <div className="mt-2 px-2 py-1.5 rounded-md text-[10px] bg-[#fffbeb] border border-[#fcd34d] text-[#92400e]">
-                          ⚠️ ДБН В.1.1-7: відстань {metrics.distanceM}м перевищує рекомендовані 25м
+                          Увага: відстань {metrics.distanceM} м перевищує рекомендовані 25 м
                         </div>
                       )
                     }
@@ -242,15 +236,15 @@ export default function EvacuationPanel() {
                     }
                   >
                     {metrics.reachesExit
-                      ? '✅ Маршрут веде до виходу'
+                      ? 'Маршрут веде до виходу'
                       : (multiFloorPath && multiFloorPath.length > 1)
-                        ? '⊞ Маршрут через сходи на інший поверх'
-                        : '⚠️ Маршрут не досягає виходу'}
+                        ? 'Маршрут проходить через сходи на інший поверх'
+                        : 'Маршрут не досягає виходу'}
                   </div>
                 </>
               ) : (
                 <div className="text-[11px] text-[#ff4422] py-1">
-                  ⚠️ Виходів не знайдено — додайте EXIT або з'єднайте сходи
+                  Виходів не знайдено — додайте вихід або з’єднайте сходи
                 </div>
               )}
             </>
@@ -279,7 +273,7 @@ export default function EvacuationPanel() {
               <table className="w-full text-[10px]">
                 <thead>
                   <tr className="bg-[#f5f5f5] border-b border-[#ebebeb]">
-                    <td className="px-2 py-[5px] text-[#bbb] text-[9px] uppercase tracking-wide">Метрика</td>
+                    <td className="px-2 py-[5px] text-[#9a9a9a] text-[9px] uppercase tracking-wide">Метрика</td>
                     <td className="px-2 py-[5px] text-center font-semibold text-[#555]">A*</td>
                     <td className="px-2 py-[5px] text-center font-semibold text-[#555]">Dijkstra</td>
                   </tr>
@@ -323,13 +317,13 @@ export default function EvacuationPanel() {
                   </tr>
                 </tbody>
               </table>
-              <div className="px-2 py-[5px] bg-[#f5f5f5] border-t border-[#ebebeb] text-[9px] text-[#aaa]">
+              <div className="px-2 py-[5px] bg-[#f5f5f5] border-t border-[#ebebeb] text-[9px] text-[#8d8d8d]">
                 Зелений — краще значення по метриці
               </div>
             </div>
           )
         })() : (
-          <div className="text-[11px] text-[#bbb] leading-relaxed">
+          <div className="text-[11px] text-[#8d8d8d] leading-relaxed">
             Оберіть кімнату щоб побачити порівняння A* і Dijkstra
           </div>
         )}
@@ -366,7 +360,7 @@ export default function EvacuationPanel() {
               </button>
             </>
           ) : (
-            <div className="text-[11px] text-[#bbb] leading-relaxed">
+            <div className="text-[11px] text-[#8d8d8d] leading-relaxed">
               Клікніть на вихід або двері на плані щоб заблокувати. Маршрут перебудується автоматично.
             </div>
           )}
@@ -382,7 +376,7 @@ export default function EvacuationPanel() {
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               <div>
-                <div className="text-[10px] text-[#bbb] mb-0.5">Виходів</div>
+                <div className="text-[10px] text-[#8d8d8d] mb-0.5">Виходів</div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[14px] font-semibold" style={{ color: analysis.hasEnoughExits ? '#22c984' : '#ff4422' }}>
                     {analysis.exitCount}
@@ -393,19 +387,19 @@ export default function EvacuationPanel() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-[#bbb] mb-0.5">Тупиків</div>
+                <div className="text-[10px] text-[#8d8d8d] mb-0.5">Тупиків</div>
                 <span className="text-[14px] font-semibold" style={{ color: analysis.deadendCount > 0 ? '#f5c542' : '#22c984' }}>
                   {analysis.deadendCount}
                 </span>
               </div>
               <div className="col-span-2">
-                <div className="text-[10px] text-[#bbb] mb-0.5">Зв'язність</div>
+                <div className="text-[10px] text-[#8d8d8d] mb-0.5">Зв'язність</div>
                 <div className="text-[11px] font-medium" style={{ color: analysis.isFullyConnected ? '#22c984' : '#ff4422' }}>
                   {analysis.isFullyConnected ? "✓ Граф повністю зв'язний" : "✗ Є ізольовані вузли"}
                 </div>
               </div>
               <div className="col-span-2">
-                <div className="text-[10px] text-[#bbb] mb-0.5">Найдальша точка</div>
+                <div className="text-[10px] text-[#8d8d8d] mb-0.5">Найдальша точка</div>
                 <div className="text-[11px] font-medium" style={{ color: parseFloat(analysis.farthestCornerDist) > 25 ? '#f5c542' : '#22c984' }}>
                   {analysis.farthestCornerDist}м {analysis.farthestCornerRoom && `("${analysis.farthestCornerRoom}")`}
                 </div>
@@ -442,7 +436,7 @@ export default function EvacuationPanel() {
                 })}
                 {analysis.roomRanking.length > 6 && !showAllRooms && (
                   <div 
-                    className="text-[10px] text-[#bbb] pt-1 cursor-pointer hover:text-[#888]"
+                    className="text-[10px] text-[#8d8d8d] pt-1 cursor-pointer hover:text-[#666]"
                     onClick={() => setShowAllRooms(true)}
                   >
                     +{analysis.roomRanking.length - 6} кімнат... (розгорнути)
@@ -450,7 +444,7 @@ export default function EvacuationPanel() {
                 )}
                 {analysis.roomRanking.length > 6 && showAllRooms && (
                   <div 
-                    className="text-[10px] text-[#bbb] pt-1 cursor-pointer hover:text-[#888]"
+                    className="text-[10px] text-[#8d8d8d] pt-1 cursor-pointer hover:text-[#666]"
                     onClick={() => setShowAllRooms(false)}
                   >
                     ↑ Згорнути список
@@ -481,7 +475,7 @@ export default function EvacuationPanel() {
       ) : (
         !hasGraph && (
           <Section title="Аналіз">
-            <div className="text-[11px] text-[#bbb]">
+            <div className="text-[11px] text-[#8d8d8d]">
               Намалюйте план і додайте виходи щоб побачити аналіз
             </div>
           </Section>

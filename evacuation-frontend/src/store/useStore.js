@@ -210,8 +210,10 @@ const useStore = create((set) => ({
   // ── Бекенд IDs ─────────────────────────────────────────────
   buildingId: null,
   floorId: null,
+  currentPlanId: null,
   setBuildingId: (id) => set({ buildingId: id }),
   setFloorId: (id) => set({ floorId: id }),
+  setCurrentPlanId: (id) => set({ currentPlanId: id }),
 
   // ── Маппінг локальних ID → бекенд ID ──────────────────────
   roomIdMap: {},
@@ -255,6 +257,7 @@ const useStore = create((set) => ({
     currentPath: null, multiFloorPath: null, allPaths: [], history: [],
     stairLinks: {}, selectedStairInfo: null,
     buildingId: null, floorId: null, viewMode: 'simple',
+    currentPlanId: null,
     roomIdMap: {}, nodeIdMap: {},
     selectedRoomId: null, selectedRoomIds: [], multiRoomPaths: {}, lastSaved: null,
     currentPlanName: 'Новий план',
