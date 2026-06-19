@@ -3,7 +3,21 @@ import { create } from 'zustand'
 const useStore = create((set) => ({
   // ── Режим ──────────────────────────────────────────────────
   mode: 'constructor',
-  setMode: (mode) => set({ mode }),
+  setMode: (mode) => set(() => {
+    if (mode !== 'constructor') return { mode }
+
+    return {
+      mode,
+      currentPath: null,
+      multiFloorPath: null,
+      allPaths: [],
+      selectedRoomId: null,
+      selectedRoomIds: [],
+      multiRoomPaths: {},
+      algorithmMetrics: null,
+      selectedStairInfo: null,
+    }
+  }),
 
   // ── Режим відображення ─────────────────────────────────────
   viewMode: 'simple',        // 'simple' | 'advanced'

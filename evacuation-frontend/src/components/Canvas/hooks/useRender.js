@@ -238,7 +238,9 @@ export default function useRender(canvasRef) {
     //  ГРАФ (advanced only)
     // ══════════════════════════════════════════════════════════
     if (isAdvanced) {
-      const pathIds = (multiFloorPath?.find(s => s.floorId === currentFloorId)?.path ?? currentPath ?? []).map(n => n.id)
+      const pathIds = mode === 'evacuation'
+        ? (multiFloorPath?.find(s => s.floorId === currentFloorId)?.path ?? currentPath ?? []).map(n => n.id)
+        : []
 
       graphEdges.forEach(edge => {
         const a = graphNodes.find(n => n.id === edge.from)
@@ -294,13 +296,13 @@ export default function useRender(canvasRef) {
       return currentPath
     })()
 
-    if (isSimple) {
+    if (mode === 'evacuation' && isSimple) {
       if (evacuationView === 'single' && activePath && activePath.length > 1)
         drawEvacPath(ctx, activePath, invScale, { color: '#009944' })
       if (evacuationView === 'all' && allPaths.length > 0)
         allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] }) })
     }
-    if (isAdvanced) {
+    if (mode === 'evacuation' && isAdvanced) {
       if (activePath && activePath.length > 1)
         drawEvacPath(ctx, activePath, invScale, { color: '#10b981', lineWidth: 2.5 })
       if (evacuationView === 'all' && allPaths.length > 0)
@@ -308,7 +310,7 @@ export default function useRender(canvasRef) {
     }
 
     // ── Мульти-кімнатні маршрути (обидва режими) ───────────────
-    if (evacuationView === 'multi' && multiRoomPaths) {
+    if (mode === 'evacuation' && evacuationView === 'multi' && multiRoomPaths) {
       Object.entries(multiRoomPaths).forEach(([, entry]) => {
         if (entry.path && entry.path.length > 1)
           drawEvacPath(ctx, entry.path, invScale, { color: entry.color, lineWidth: isAdvanced ? 2.5 : 3 })
