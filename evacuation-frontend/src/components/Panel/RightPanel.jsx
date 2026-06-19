@@ -53,34 +53,48 @@ export default function RightPanel() {
 
   // Інші поверхи та їхні сходи
   const otherFloors = floors.filter(f => f.id !== currentFloorId)
+  const stairTargets = otherFloors.flatMap(f => {
+    const floorData = floorDataMap[f.id] || { stairs: [] }
+    return (floorData.stairs || []).map((stair, idx) => ({
+      floorId: f.id,
+      floorName: f.name,
+      stair,
+      idx,
+      value: `${f.id}:${idx}`,
+    }))
+  })
 
-  function handleStairConnect(toFloorId) {
+  const selectedTargetValue = stairLink
+    ? stairTargets.find(target =>
+      target.floorId === stairLink.toFloorId &&
+      Math.hypot(target.stair.x - stairLink.toX, target.stair.y - stairLink.toY) < 2
+    )?.value ?? ''
+    : ''
+
+  function handleStairConnect(targetValue) {
     if (!selectedStairInfo) return
     const { floorId, x, y } = selectedStairInfo
 
-    if (toFloorId === '') {
+    if (targetValue === '') {
       // Видалити зв'язок
       setStairLink(floorId, x, y, null, null, null)
       return
     }
 
-    const fId = Number(toFloorId)
-    const floorData = fId === currentFloorId
-      ? { stairs }
-      : (floorDataMap[fId] || { stairs: [] })
+    const target = stairTargets.find(item => item.value === targetValue)
+    if (!target) return
 
-    // Шукаємо найближчі сходи на цільовому поверсі
-    const targetStairs = floorData.stairs || []
-    if (targetStairs.length === 0) {
-      // Якщо нема сходів на тому поверсі — зберігаємо з тими ж координатами
-      setStairLink(floorId, x, y, fId, x, y)
-    } else {
-      const nearest = targetStairs.reduce((best, s) => {
-        const d = Math.hypot(s.x - x, s.y - y)
-        return (!best || d < best.d) ? { ...s, d } : best
-      }, null)
-      setStairLink(floorId, x, y, fId, nearest.x, nearest.y)
-    }
+    setStairLink(floorId, x, y, target.floorId, target.stair.x, target.stair.y)
+  }
+
+  function getLinkedStairLabel() {
+    if (!stairLink) return ''
+    const target = stairTargets.find(item =>
+      item.floorId === stairLink.toFloorId &&
+      Math.hypot(item.stair.x - stairLink.toX, item.stair.y - stairLink.toY) < 2
+    )
+    if (target) return `${target.floorName} — Сходи ${target.idx + 1}`
+    return floors.find(f => f.id === stairLink.toFloorId)?.name || 'іншим поверхом'
   }
 
   return (
@@ -203,22 +217,28 @@ export default function RightPanel() {
                 <div className="text-[11px] text-[#8d8d8d] py-1">
                   Додайте ще поверхи щоб з'єднати сходи
                 </div>
+              ) : stairTargets.length === 0 ? (
+                <div className="text-[11px] text-[#8d8d8d] py-1 leading-relaxed">
+                  На інших поверхах немає сходів. Додайте сходи на потрібному поверсі.
+                </div>
               ) : (
                 <>
-                  <div className="text-[11px] text-[#555] mb-1.5">Веде на поверх:</div>
+                  <div className="text-[11px] text-[#555] mb-1.5">З'єднати зі сходами:</div>
                   <select
-                    value={stairLink?.toFloorId ?? ''}
+                    value={selectedTargetValue}
                     onChange={e => handleStairConnect(e.target.value)}
                     className="w-full text-[11px] border border-[#e0e0e0] rounded-md px-2 py-[5px] bg-white outline-none focus:border-[#f5c542]"
                   >
                     <option value="">— не з'єднано —</option>
-                    {otherFloors.map(f => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
+                    {stairTargets.map(target => (
+                      <option key={target.value} value={target.value}>
+                        {target.floorName} — Сходи {target.idx + 1}
+                      </option>
                     ))}
                   </select>
                   {stairLink && (
                     <div className="mt-1.5 text-[10px] text-[#22c984]">
-                      З'єднано з {floors.find(f => f.id === stairLink.toFloorId)?.name}
+                      З'єднано з {getLinkedStairLabel()}
                     </div>
                   )}
                 </>

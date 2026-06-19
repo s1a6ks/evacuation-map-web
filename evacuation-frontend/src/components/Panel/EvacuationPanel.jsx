@@ -42,6 +42,7 @@ export default function EvacuationPanel() {
     allPaths, setAllPaths,
     selectedRoomId, setCurrentPath, setSelectedRoomId, setMultiFloorPath,
     algorithmMetrics, currentFloorId,
+    stairLinks,
     blockedExits, blockedDoors, clearBlockages,
     selectedRoomIds, multiRoomPaths, clearMultiRoom,
     showEdgeWeights, setShowEdgeWeights,
@@ -59,7 +60,7 @@ export default function EvacuationPanel() {
   })()
 
   const metrics = computeRouteMetrics(activePath, graphEdges, doors)
-  const analysis = computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms)
+  const analysis = computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, { stairLinks, currentFloorId })
   const hasGraph = graphNodes.length > 0
   const selectedRoom = detectedRooms.find(r => r.id === selectedRoomId)
 
@@ -376,7 +377,9 @@ export default function EvacuationPanel() {
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               <div>
-                <div className="text-[10px] text-[#8d8d8d] mb-0.5">Виходів</div>
+                <div className="text-[10px] text-[#8d8d8d] mb-0.5">
+                  {analysis.stairExitCount > 0 ? 'Евак. точок' : 'Виходів'}
+                </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[14px] font-semibold" style={{ color: analysis.hasEnoughExits ? '#22c984' : '#ff4422' }}>
                     {analysis.exitCount}
@@ -385,6 +388,11 @@ export default function EvacuationPanel() {
                     <span className="text-[9px] text-[#ff4422]">мін. {analysis.requiredExits}</span>
                   )}
                 </div>
+                {analysis.stairExitCount > 0 && (
+                  <div className="text-[9px] text-[#8d8d8d]">
+                    {analysis.directExitCount} вих. + {analysis.stairExitCount} сход.
+                  </div>
+                )}
               </div>
               <div>
                 <div className="text-[10px] text-[#8d8d8d] mb-0.5">Тупиків</div>
