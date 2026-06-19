@@ -33,7 +33,18 @@ export default function RightPanel() {
   }
 
   function routeData() {
-    return { currentPath, allPaths, evacuationView, multiFloorPath, currentFloorId }
+    return {
+      currentPath,
+      allPaths,
+      evacuationView,
+      multiFloorPath,
+      currentFloorId,
+      graphNodes,
+      graphEdges,
+      detectedRooms,
+      stairLinks,
+      multiRoomPaths: useStore.getState().multiRoomPaths,
+    }
   }
 
   // ── PNG Export (всі поверхи) ──────────────────────────────────

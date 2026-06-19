@@ -1,7 +1,18 @@
 import jsPDF from 'jspdf'
+import { computeSafetyAnalysis } from './evacAnalysis'
 
 const GRID = 20
 const METER = 0.5
+const MULTI_COLORS = [
+  '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899',
+  '#06b6d4', '#84cc16', '#f97316', '#14b8a6',
+]
+
+const REC_STYLES = {
+  ok: { bg: '#f0fdf4', border: '#86efac', dot: '#22c984', text: '#166534' },
+  warning: { bg: '#fffbeb', border: '#fcd34d', dot: '#f5c542', text: '#92400e' },
+  error: { bg: '#fff1f2', border: '#fca5a5', dot: '#ff4422', text: '#991b1b' },
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  ЕВАКУАЦІЙНІ МАРШРУТИ (canvas helpers)
@@ -126,14 +137,21 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
 
   // ── Евакуаційні маршрути ──────────────────────────────────
   if (evacData) {
-    const { currentPath, allPaths, evacuationView, multiFloorPath, currentFloorId } = evacData
+    const { currentPath, allPaths, evacuationView, multiFloorPath, currentFloorId, multiRoomPaths } = evacData
     const activePath = multiFloorPath
       ? (multiFloorPath.find(s => s.floorId === currentFloorId)?.path ?? null)
       : currentPath
     if (evacuationView === 'single' && activePath && activePath.length > 1)
       drawEvacPath(ctx, activePath, invScale, { color: '#009944' })
     if (evacuationView === 'all' && allPaths && allPaths.length > 0)
-      allPaths.forEach(path => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: '#009944' }) })
+      allPaths.forEach((path, i) => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] }) })
+    if (evacuationView === 'multi' && multiRoomPaths) {
+      Object.values(multiRoomPaths).forEach(entry => {
+        if (entry?.path && entry.path.length > 1) {
+          drawEvacPath(ctx, entry.path, invScale, { color: entry.color || '#009944' })
+        }
+      })
+    }
   }
 
   // ── Стіни ────────────────────────────────────────────────
@@ -271,6 +289,109 @@ function buildFloorCanvas(floorData, evacData) {
 // ═══════════════════════════════════════════════════════════════
 //  ПОВНИЙ ДОКУМЕНТ — A4 альбом, стиль «план на стіні»
 // ═══════════════════════════════════════════════════════════════
+
+function wrapText(ctx, text, maxWidth) {
+  const words = String(text || '').split(/\s+/).filter(Boolean)
+  const lines = []
+  let line = ''
+
+  words.forEach(word => {
+    const test = line ? `${line} ${word}` : word
+    if (ctx.measureText(test).width <= maxWidth) line = test
+    else {
+      if (line) lines.push(line)
+      line = word
+    }
+  })
+
+  if (line) lines.push(line)
+  return lines
+}
+
+function drawRecommendationCard(ctx, rec, x, y, w) {
+  const style = REC_STYLES[rec.level] || REC_STYLES.warning
+  ctx.font = '17px Manrope, Arial, sans-serif'
+  const lines = wrapText(ctx, rec.text, w - 54)
+  const h = Math.max(70, 34 + Math.min(lines.length, 5) * 22)
+
+  ctx.fillStyle = style.bg
+  ctx.strokeStyle = style.border
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.roundRect(x, y, w, h, 10)
+  ctx.fill()
+  ctx.stroke()
+
+  ctx.fillStyle = style.dot
+  ctx.beginPath()
+  ctx.arc(x + 24, y + 28, 6, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.fillStyle = style.text
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  lines.slice(0, 5).forEach((line, i) => ctx.fillText(line, x + 42, y + 18 + i * 22))
+  return h
+}
+
+function drawAnalysisPanel(ctx, evacData, floorData, x, y, w, bottomY) {
+  const analysis = evacData?.graphNodes
+    ? computeSafetyAnalysis(
+      evacData.graphNodes,
+      evacData.graphEdges || [],
+      evacData.detectedRooms || floorData.detectedRooms || [],
+      { stairLinks: evacData.stairLinks || {}, currentFloorId: evacData.currentFloorId }
+    )
+    : null
+
+  ctx.font = 'bold 22px Manrope, Arial, sans-serif'
+  ctx.fillStyle = '#1a1a1a'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('АНАЛІЗ', x, y)
+  y += 32
+
+  if (!analysis) {
+    ctx.font = '17px Manrope, Arial, sans-serif'
+    ctx.fillStyle = '#777'
+    ctx.fillText('Дані аналізу відсутні', x, y)
+    return
+  }
+
+  ctx.font = '17px Manrope, Arial, sans-serif'
+  const exitLabel = analysis.stairExitCount > 0 ? `${analysis.exitCount} евак. точ.` : `${analysis.exitCount} вих.`
+  ;[
+    ['Площа', `${analysis.totalAreaM2} м²`],
+    ['Виходи', exitLabel],
+    ['Тупики', `${analysis.deadendCount}`],
+    ['Найдальша точка', `${analysis.farthestCornerDist} м`],
+  ].forEach(([label, value]) => {
+    ctx.fillStyle = '#777'
+    ctx.textAlign = 'left'
+    ctx.fillText(label, x, y)
+    ctx.fillStyle = '#1a1a1a'
+    ctx.textAlign = 'right'
+    ctx.fillText(value, x + w, y)
+    y += 26
+  })
+
+  y += 22
+  ctx.font = 'bold 22px Manrope, Arial, sans-serif'
+  ctx.fillStyle = '#1a1a1a'
+  ctx.textAlign = 'left'
+  ctx.fillText('РЕКОМЕНДАЦІЇ', x, y)
+  y += 28
+
+  const recommendations = analysis.recommendations?.length
+    ? analysis.recommendations
+    : [{ level: 'ok', text: 'План відповідає базовим вимогам безпеки' }]
+
+  for (const rec of recommendations.slice(0, 5)) {
+    const cardH = drawRecommendationCard(ctx, rec, x, y, w)
+    y += cardH + 12
+    if (y > bottomY - 84) break
+  }
+}
 
 function buildDocumentCanvas(floorData, evacData, planName, floorName) {
   // A4 landscape @ ~152 DPI: 1772 × 1252
@@ -449,6 +570,16 @@ function buildDocumentCanvas(floorData, evacData, planName, floorName) {
   ctx.fillStyle = '#f5f5f5'
   ctx.fillRect(M + 2, footerY + 2, W - M * 2 - 4, FOOTER_H - 2)
 
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(legendX + 2, contentY + 2, LEGEND_W - 4, footerY - contentY - 4)
+  ctx.strokeStyle = '#c0c0c0'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(legendX, contentY)
+  ctx.lineTo(legendX, footerY)
+  ctx.stroke()
+  drawAnalysisPanel(ctx, evacData, floorData, legendX + 20, contentY + 42, LEGEND_W - 40, footerY)
+
   const dateStr = new Date().toLocaleDateString('uk-UA', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   })
@@ -487,7 +618,7 @@ export function exportPlanToPDF(planName, floors, floorDataMap, currentFloorId, 
     if (i > 0) pdf.addPage()
     const data = getFloorData(floor, floorDataMap, currentFloorId, currentFloorData)
     const evacData = floor.id === currentFloorId ? routeData : null
-    const canvas = buildFloorCanvas(data, evacData)
+    const canvas = buildDocumentCanvas(data, evacData, planName, floor.name)
     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, pageH)
   })
 
@@ -499,7 +630,7 @@ export function exportAllFloorsToPNG(planName, floors, floorDataMap, currentFloo
     setTimeout(() => {
       const data = getFloorData(floor, floorDataMap, currentFloorId, currentFloorData)
       const evacData = floor.id === currentFloorId ? routeData : null
-      const canvas = buildFloorCanvas(data, evacData)
+      const canvas = buildDocumentCanvas(data, evacData, planName, floor.name)
       const link = document.createElement('a')
       link.download = `${planName}_${floor.name}.png`
       link.href = canvas.toDataURL('image/png')
