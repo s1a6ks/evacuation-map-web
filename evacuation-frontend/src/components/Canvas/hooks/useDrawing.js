@@ -21,20 +21,31 @@ export function distToSegment(px, py, wall) {
   return Math.hypot(px - (wall.x1 + t * dx), py - (wall.y1 + t * dy))
 }
 
-export function projectOnWall(x, y, wall) {
+function projectPointToSegment(x, y, wall, edgeMargin = 0.08) {
   const dx = wall.x2 - wall.x1
   const dy = wall.y2 - wall.y1
   const len2 = dx * dx + dy * dy
+  if (len2 === 0) {
+    return { x: wall.x1, y: wall.y1, t: 0, angle: 0, horiz: true }
+  }
+
   let t = ((x - wall.x1) * dx + (y - wall.y1) * dy) / len2
-  t = Math.max(0.1, Math.min(0.9, t))
+  t = Math.max(edgeMargin, Math.min(1 - edgeMargin, t))
+
   return {
-    x: snap(wall.x1 + t * dx),
-    y: snap(wall.y1 + t * dy),
-    horiz: Math.abs(dx) > Math.abs(dy),
+    x: wall.x1 + t * dx,
+    y: wall.y1 + t * dy,
+    t,
+    angle: Math.atan2(dy, dx),
+    horiz: Math.abs(dx) >= Math.abs(dy),
   }
 }
 
-export function findNearestWall(x, y, walls, maxDist = 16) {
+export function projectOnWall(x, y, wall) {
+  return projectPointToSegment(x, y, wall)
+}
+
+export function findNearestWall(x, y, walls, maxDist = 28) {
   let best = null, bestD = maxDist
   walls.forEach(w => {
     const d = distToSegment(x, y, w)
@@ -68,8 +79,10 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
 
   const handleClick = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = snap((e.clientX - rect.left - offset.x) / scale)
-    const y = snap((e.clientY - rect.top - offset.y) / scale)
+    const rawX = (e.clientX - rect.left - offset.x) / scale
+    const rawY = (e.clientY - rect.top - offset.y) / scale
+    const x = snap(rawX)
+    const y = snap(rawY)
 
     if (tool === 'wall') {
       if (!drawing) {
@@ -86,21 +99,21 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
     }
 
     if (tool === 'door') {
-      const wall = findNearestWall(x, y, walls)
+      const wall = findNearestWall(rawX, rawY, walls)
       if (wall) {
         pushHistory()
-        const pt = projectOnWall(x, y, wall)
-        addDoor({ x: pt.x, y: pt.y, horiz: pt.horiz })
+        const pt = projectOnWall(rawX, rawY, wall)
+        addDoor({ x: pt.x, y: pt.y, horiz: pt.horiz, angle: pt.angle })
       }
     }
 
     if (tool === 'exit') {
-      const wall = findNearestWall(x, y, walls)
+      const wall = findNearestWall(rawX, rawY, walls)
       const label = `Вихід ${exits.length + 1}`
       pushHistory()
       if (wall) {
-        const pt = projectOnWall(x, y, wall)
-        addExit({ x: pt.x, y: pt.y, horiz: pt.horiz, label })
+        const pt = projectOnWall(rawX, rawY, wall)
+        addExit({ x: pt.x, y: pt.y, horiz: pt.horiz, angle: pt.angle, label })
       } else {
         addExit({ x, y, horiz: true, label })
       }

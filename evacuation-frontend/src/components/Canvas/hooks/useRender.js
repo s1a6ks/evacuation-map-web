@@ -45,6 +45,29 @@ export function pxToMeters(px) {
   return ((px / GRID) * METER).toFixed(1)
 }
 
+function getWallAngle(item) {
+  if (Number.isFinite(item.angle)) return item.angle
+  return item.horiz ? 0 : Math.PI / 2
+}
+
+function drawAlongWall(ctx, item, halfWidth, color, lineWidth, invScale, lineCap = 'butt') {
+  ctx.save()
+  ctx.translate(item.x, item.y)
+  ctx.rotate(getWallAngle(item))
+  ctx.strokeStyle = color
+  ctx.lineWidth = lineWidth * invScale
+  ctx.lineCap = lineCap
+  ctx.beginPath()
+  ctx.moveTo(-halfWidth, 0)
+  ctx.lineTo(halfWidth, 0)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawWallCut(ctx, item, halfWidth, wallThickness, invScale, bgColor) {
+  drawAlongWall(ctx, item, halfWidth, bgColor, wallThickness + 4, invScale, 'butt')
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ЕВАКУАЦІЙНІ МАРШРУТИ
 // ═══════════════════════════════════════════════════════════════
@@ -352,14 +375,7 @@ export default function useRender(canvasRef) {
       const isBlocked = blockedDoors.includes(doorIdx)
 
       // Прорізання стіни
-      ctx.strokeStyle = isSimple ? '#ffffff' : '#f8fafc'
-      ctx.lineWidth = (wallThickness + 4) * invScale
-      ctx.lineCap = 'butt'
-      if (door.horiz) {
-        ctx.beginPath(); ctx.moveTo(door.x - r, door.y); ctx.lineTo(door.x + r, door.y); ctx.stroke()
-      } else {
-        ctx.beginPath(); ctx.moveTo(door.x, door.y - r); ctx.lineTo(door.x, door.y + r); ctx.stroke()
-      }
+      drawWallCut(ctx, door, r, wallThickness, invScale, isSimple ? '#ffffff' : '#f8fafc')
 
       ctx.setLineDash([])
       ctx.lineCap = 'round'
@@ -368,11 +384,13 @@ export default function useRender(canvasRef) {
         // Заблоковані двері — діагональна штриховка (стандарт на планах евакуації)
         const hs = GRID * 0.75
         ctx.save()
+        ctx.translate(door.x, door.y)
+        ctx.rotate(getWallAngle(door))
         ctx.beginPath()
-        ctx.rect(door.x - hs, door.y - hs, hs * 2, hs * 2)
+        ctx.rect(-hs, -hs, hs * 2, hs * 2)
         ctx.clip()
         ctx.fillStyle = 'rgba(239,68,68,0.08)'
-        ctx.fillRect(door.x - hs, door.y - hs, hs * 2, hs * 2)
+        ctx.fillRect(-hs, -hs, hs * 2, hs * 2)
         ctx.strokeStyle = 'rgba(239,68,68,0.55)'
         ctx.lineWidth = 1.2 * invScale
         ctx.setLineDash([])
@@ -380,42 +398,38 @@ export default function useRender(canvasRef) {
         for (let k = -4; k <= 4; k++) {
           const offset2 = k * step
           ctx.beginPath()
-          ctx.moveTo(door.x - hs, door.y + offset2)
-          ctx.lineTo(door.x + offset2, door.y - hs)
-          ctx.moveTo(door.x + offset2, door.y + hs)
-          ctx.lineTo(door.x + hs, door.y + offset2)
+          ctx.moveTo(-hs, offset2)
+          ctx.lineTo(offset2, -hs)
+          ctx.moveTo(offset2, hs)
+          ctx.lineTo(hs, offset2)
           ctx.stroke()
         }
-        ctx.restore()
         // Червона рамка
         ctx.strokeStyle = '#ef4444'
         ctx.lineWidth = 1.5 * invScale
-        ctx.strokeRect(door.x - hs, door.y - hs, hs * 2, hs * 2)
+        ctx.strokeRect(-hs, -hs, hs * 2, hs * 2)
+        ctx.restore()
       } else if (isSimple) {
+        ctx.save()
+        ctx.translate(door.x, door.y)
+        ctx.rotate(getWallAngle(door))
         ctx.strokeStyle = '#b0b8c4'
         ctx.lineWidth = 0.8 * invScale
-        if (door.horiz) {
-          ctx.beginPath(); ctx.arc(door.x - r, door.y, r, 0, Math.PI / 2); ctx.stroke()
-          ctx.beginPath(); ctx.moveTo(door.x - r, door.y); ctx.lineTo(door.x - r, door.y - r); ctx.stroke()
-        } else {
-          ctx.beginPath(); ctx.arc(door.x, door.y - r, r, Math.PI / 2, Math.PI); ctx.stroke()
-          ctx.beginPath(); ctx.moveTo(door.x, door.y - r); ctx.lineTo(door.x + r, door.y - r); ctx.stroke()
-        }
+        ctx.beginPath(); ctx.arc(-r, 0, r, 0, Math.PI / 2); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(-r, -r); ctx.stroke()
+        ctx.restore()
       } else {
         // Advanced — синя дуга + точка петлі
+        ctx.save()
+        ctx.translate(door.x, door.y)
+        ctx.rotate(getWallAngle(door))
         ctx.strokeStyle = '#3b82f6'
         ctx.lineWidth = 1.5 * invScale
-        if (door.horiz) {
-          ctx.beginPath(); ctx.arc(door.x - r, door.y, r, 0, Math.PI / 2); ctx.stroke()
-          ctx.beginPath(); ctx.moveTo(door.x - r, door.y); ctx.lineTo(door.x - r, door.y - r); ctx.stroke()
-          ctx.fillStyle = '#3b82f6'
-          ctx.beginPath(); ctx.arc(door.x - r, door.y, 3 * invScale, 0, Math.PI * 2); ctx.fill()
-        } else {
-          ctx.beginPath(); ctx.arc(door.x, door.y - r, r, Math.PI / 2, Math.PI); ctx.stroke()
-          ctx.beginPath(); ctx.moveTo(door.x, door.y - r); ctx.lineTo(door.x + r, door.y - r); ctx.stroke()
-          ctx.fillStyle = '#3b82f6'
-          ctx.beginPath(); ctx.arc(door.x, door.y - r, 3 * invScale, 0, Math.PI * 2); ctx.fill()
-        }
+        ctx.beginPath(); ctx.arc(-r, 0, r, 0, Math.PI / 2); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(-r, -r); ctx.stroke()
+        ctx.fillStyle = '#3b82f6'
+        ctx.beginPath(); ctx.arc(-r, 0, 3 * invScale, 0, Math.PI * 2); ctx.fill()
+        ctx.restore()
       }
     })
 
@@ -427,14 +441,7 @@ export default function useRender(canvasRef) {
       const isBlocked = blockedExits.includes(exitIdx)
 
       // Прорізання стіни
-      ctx.strokeStyle = isSimple ? '#ffffff' : '#f8fafc'
-      ctx.lineWidth = (wallThickness + 4) * invScale
-      ctx.lineCap = 'butt'
-      if (exit.horiz) {
-        ctx.beginPath(); ctx.moveTo(exit.x - hw, exit.y); ctx.lineTo(exit.x + hw, exit.y); ctx.stroke()
-      } else {
-        ctx.beginPath(); ctx.moveTo(exit.x, exit.y - hw); ctx.lineTo(exit.x, exit.y + hw); ctx.stroke()
-      }
+      drawWallCut(ctx, exit, hw, wallThickness, invScale, isSimple ? '#ffffff' : '#f8fafc')
 
       const fontSize = 8 * invScale
       const bh = 16 * invScale
@@ -462,12 +469,7 @@ export default function useRender(canvasRef) {
         ctx.fillText(text, exit.x, exit.y)
       } else {
         // Advanced — зелена лінія + glowing badge
-        ctx.strokeStyle = '#00a651'; ctx.lineWidth = 2.5 * invScale
-        if (exit.horiz) {
-          ctx.beginPath(); ctx.moveTo(exit.x - hw, exit.y); ctx.lineTo(exit.x + hw, exit.y); ctx.stroke()
-        } else {
-          ctx.beginPath(); ctx.moveTo(exit.x, exit.y - hw); ctx.lineTo(exit.x, exit.y + hw); ctx.stroke()
-        }
+        drawAlongWall(ctx, exit, hw, '#00a651', 2.5, invScale, 'round')
         const text = `${exit.label || 'ВИХІД'} ↑`
         const bw = ctx.measureText(text).width + 10 * invScale
         ctx.fillStyle = 'rgba(0,166,81,0.13)'

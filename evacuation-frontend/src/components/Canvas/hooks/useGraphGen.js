@@ -11,20 +11,29 @@ function findRoomAtCell(detectedRooms, col, row) {
 }
 
 // ── Два сусідні регіони по обидва боки від двері/виходу ─────
-function getAdjacentRooms(px, py, horiz, detectedRooms) {
-  const col = Math.round(px / GRID)
-  const row = Math.round(py / GRID)
+function getWallAngle(item) {
+  if (Number.isFinite(item.angle)) return item.angle
+  return item.horiz ? 0 : Math.PI / 2
+}
 
-  let roomA, roomB
-  if (horiz) {
-    roomA = findRoomAtCell(detectedRooms, col, row - 1)
-    roomB = findRoomAtCell(detectedRooms, col, row + 1)
-  } else {
-    roomA = findRoomAtCell(detectedRooms, col - 1, row)
-    roomB = findRoomAtCell(detectedRooms, col + 1, row)
-  }
+function getAdjacentRooms(item, detectedRooms) {
+  const angle = getWallAngle(item)
+  const normalX = -Math.sin(angle)
+  const normalY = Math.cos(angle)
+  const sampleDist = GRID * 0.75
 
-  return [roomA, roomB].filter(Boolean)
+  const samples = [
+    { x: item.x + normalX * sampleDist, y: item.y + normalY * sampleDist },
+    { x: item.x - normalX * sampleDist, y: item.y - normalY * sampleDist },
+  ]
+
+  const rooms = samples.map(point => {
+    const col = Math.round(point.x / GRID)
+    const row = Math.round(point.y / GRID)
+    return findRoomAtCell(detectedRooms, col, row)
+  }).filter(Boolean)
+
+  return [...new Map(rooms.map(room => [room.id, room])).values()]
 }
 
 // ── Найближчий вузол ─────────────────────────────────────────
@@ -98,7 +107,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs) {
     }
     nodes.push(doorNode)
 
-    const adjacent = getAdjacentRooms(door.x, door.y, door.horiz, detectedRooms)
+    const adjacent = getAdjacentRooms(door, detectedRooms)
 
     // Реєструємо doorNode для кожної суміжної кімнати
     adjacent.forEach(room => {
@@ -137,7 +146,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs) {
     nodes.push(exitNode)
     exitNodesList.push(exitNode)
 
-    const adjacent = getAdjacentRooms(exit.x, exit.y, exit.horiz, detectedRooms)
+    const adjacent = getAdjacentRooms(exit, detectedRooms)
 
     adjacent.forEach(room => {
       // Реєструємо exit як "двері" для door-to-door транзиту
