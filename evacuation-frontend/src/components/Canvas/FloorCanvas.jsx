@@ -8,7 +8,7 @@ import useEvacuation from './hooks/useEvacuation'
 
 export default function FloorCanvas() {
   const canvasRef = useRef(null)
-  const { mode, scale, offset, setTransform, floors, currentFloorId, addFloor, switchFloor, removeFloor, renameFloor, setSelectedStairInfo } = useStore()
+  const { mode, tool, scale, offset, setTransform, floors, currentFloorId, addFloor, switchFloor, removeFloor, renameFloor, setSelectedStairInfo } = useStore()
   const isPanning  = useRef(false)
   const hasPanned  = useRef(false)
   const panStart   = useRef({ x: 0, y: 0 })
@@ -115,7 +115,7 @@ export default function FloorCanvas() {
       {/* Canvas */}
       <canvas
         ref={canvasRef}
-        className={`block w-full h-full ${mode === 'evacuation' ? 'cursor-pointer' : 'cursor-crosshair'} outline-none`}
+        className={`block w-full h-full ${mode === 'evacuation' || tool === 'select' ? 'cursor-pointer' : 'cursor-crosshair'} outline-none`}
         tabIndex={0}
         onMouseMove={handlePanMove}
         onMouseDown={handleMouseDown}

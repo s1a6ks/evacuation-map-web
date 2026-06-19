@@ -54,14 +54,22 @@ export function findNearestWall(x, y, walls, maxDist = 28) {
   return best
 }
 
+function findRoomAtPixel(detectedRooms, px, py) {
+  const col = Math.floor(px / GRID)
+  const row = Math.floor(py / GRID)
+  return detectedRooms.find(room =>
+    room.cells.some(([r, c]) => r === row && c === col)
+  ) ?? null
+}
+
 export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
   const {
-    tool, walls, doors, exits, stairs,
+    tool, walls, doors, exits, stairs, detectedRooms,
     addWall, addDoor, addExit, addStair,
     removeWall, removeDoor, removeExit, removeStair,
     pushHistory,
     setMousePos,
-    setSelectedStairInfo, currentFloorId,
+    setSelectedStairInfo, setSelectedRoomId, currentFloorId,
   } = useStore()
 
   const [drawing, setDrawing] = useState(false)
@@ -83,6 +91,26 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
     const rawY = (e.clientY - rect.top - offset.y) / scale
     const x = snap(rawX)
     const y = snap(rawY)
+
+    if (tool === 'select') {
+      const CLICK_R = 20
+      const clickedStair = stairs.reduce((best, s, i) => {
+        const d = Math.hypot(s.x - rawX, s.y - rawY)
+        if (d < CLICK_R && (!best || d < best.d)) return { idx: i, d, x: s.x, y: s.y }
+        return best
+      }, null)
+
+      if (clickedStair) {
+        setSelectedRoomId(null)
+        setSelectedStairInfo({ floorId: currentFloorId, x: clickedStair.x, y: clickedStair.y, idx: clickedStair.idx })
+        return
+      }
+
+      const clickedRoom = findRoomAtPixel(detectedRooms, rawX, rawY)
+      setSelectedRoomId(clickedRoom?.id ?? null)
+      setSelectedStairInfo(null)
+      return
+    }
 
     if (tool === 'wall') {
       if (!drawing) {
@@ -185,9 +213,10 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
       }
     }
   }, [tool, drawing, drawStart, walls, doors, exits, stairs,
+    detectedRooms,
     addWall, addDoor, addExit, addStair,
     removeWall, removeDoor, removeExit, removeStair,
-    pushHistory, setSelectedStairInfo, currentFloorId, scale, offset])
+    pushHistory, setSelectedStairInfo, setSelectedRoomId, currentFloorId, scale, offset])
 
   const handleDoubleClick = useCallback(() => {
     if (tool === 'wall' && drawing) {

@@ -193,7 +193,7 @@ export default function useRender(canvasRef) {
     detectedRooms, graphNodes, graphEdges,
     currentPath, multiFloorPath, allPaths, evacuationView, tool, selectedRoomId, viewMode,
     mode, currentFloorId, blockedExits, blockedDoors,
-    multiRoomPaths, showEdgeWeights,
+    multiRoomPaths, showEdgeWeights, selectedStairInfo,
   } = useStore()
 
   const render = (drawing, drawStart, mousePos, scale = 1, offset = { x: 0, y: 0 }) => {
@@ -255,6 +255,21 @@ export default function useRender(canvasRef) {
           ctx.setLineDash([])
         }
       })
+    }
+
+    const selectedRoom = detectedRooms.find(room => room.id === selectedRoomId)
+    if (mode === 'constructor' && selectedRoom) {
+      ctx.fillStyle = 'rgba(59,130,246,0.045)'
+      selectedRoom.cells.forEach(([row, col]) => {
+        ctx.fillRect(col * GRID + 1, row * GRID + 1, GRID - 2, GRID - 2)
+      })
+      ctx.strokeStyle = 'rgba(59,130,246,0.45)'
+      ctx.lineWidth = 1.1 * invScale
+      ctx.setLineDash([3 * invScale, 3 * invScale])
+      selectedRoom.cells.forEach(([row, col]) => {
+        ctx.strokeRect(col * GRID + 1, row * GRID + 1, GRID - 2, GRID - 2)
+      })
+      ctx.setLineDash([])
     }
 
     // ══════════════════════════════════════════════════════════
@@ -486,7 +501,22 @@ export default function useRender(canvasRef) {
     // ══════════════════════════════════════════════════════════
     //  СХОДИ
     // ══════════════════════════════════════════════════════════
-    stairs.forEach(stair => {
+    stairs.forEach((stair, stairIdx) => {
+      const isSelectedStair = mode === 'constructor'
+        && selectedStairInfo?.floorId === currentFloorId
+        && (selectedStairInfo.idx === stairIdx || Math.hypot(selectedStairInfo.x - stair.x, selectedStairInfo.y - stair.y) < 2)
+
+      if (isSelectedStair) {
+        const w = GRID * 1.35, h = GRID * 1.65
+        ctx.fillStyle = 'rgba(245,158,11,0.16)'
+        ctx.strokeStyle = '#f59e0b'
+        ctx.lineWidth = 2 * invScale
+        ctx.beginPath()
+        ctx.roundRect(stair.x - w / 2, stair.y - h / 2, w, h, 6 * invScale)
+        ctx.fill()
+        ctx.stroke()
+      }
+
       if (isSimple) {
         // Класичний архітектурний символ
         ctx.strokeStyle = '#374151'; ctx.lineWidth = 1 * invScale
@@ -513,6 +543,25 @@ export default function useRender(canvasRef) {
         ctx.fillStyle = '#92400e'; ctx.font = `bold ${8 * invScale}px sans-serif`
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText('↕', stair.x, stair.y)
+      }
+
+      if (isSelectedStair) {
+        const text = `Сходи ${stairIdx + 1}`
+        const fontSize = Math.max(9, 10 * invScale)
+        const badgeY = stair.y - GRID * 1.15
+        ctx.font = `600 ${fontSize}px Manrope, Arial, sans-serif`
+        const bw = ctx.measureText(text).width + 12 * invScale
+        const bh = 16 * invScale
+        ctx.fillStyle = 'rgba(255,255,255,0.94)'
+        ctx.strokeStyle = 'rgba(245,158,11,0.55)'
+        ctx.lineWidth = 1 * invScale
+        ctx.beginPath()
+        ctx.roundRect(stair.x - bw / 2, badgeY - bh / 2, bw, bh, 5 * invScale)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillStyle = '#92400e'
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillText(text, stair.x, badgeY)
       }
     })
 
