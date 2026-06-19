@@ -64,6 +64,27 @@ function getRoomCorners(room) {
   ]
 }
 
+function ukPlural(count, one, few, many) {
+  const mod10 = count % 10
+  const mod100 = count % 100
+
+  if (mod10 === 1 && mod100 !== 11) return one
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few
+  return many
+}
+
+function formatList(items, limit = 4) {
+  const unique = [...new Set(items.filter(Boolean))]
+  if (unique.length === 0) return 'не визначено'
+  if (unique.length <= limit) return unique.join(', ')
+  return `${unique.slice(0, limit).join(', ')} та ще ${unique.length - limit}`
+}
+
+function getRoomLabelByNode(node, detectedRooms) {
+  const room = detectedRooms.find(r => r.id === node?.roomId)
+  return room?.label || `Кімната ${node?.roomId ?? node?.id}`
+}
+
 // ── Аналіз безпеки плану ──────────────────────────────────────
 export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
   if (graphNodes.length === 0) return null
@@ -151,12 +172,14 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
 
   // 5. Зв'язність графа
   let isFullyConnected = false
+  let unreachableRooms = []
   if (exitNodes.length > 0) {
     const { dist } = dijkstra(exitNodes[0].id, adj)
     const unreachable = graphNodes
       .filter(n => n.roomId != null)
       .filter(n => (dist.get(n.id) ?? Infinity) === Infinity)
     isFullyConnected = unreachable.length === 0
+    unreachableRooms = unreachable.map(node => getRoomLabelByNode(node, detectedRooms))
   }
 
   // 6. Найдальша точка на поверсі від виходу (кути всіх кімнат)
@@ -196,6 +219,13 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
     .sort((a, b) => b.degree - a.degree)
     .slice(0, 3)
 
+  const deadendRooms = graphNodes
+    .filter(node => deadendIds.has(node.id))
+    .map(node => getRoomLabelByNode(node, detectedRooms))
+
+  const bottleneckRooms = bottlenecks
+    .map(node => node.room?.label || getRoomLabelByNode(node, detectedRooms))
+
   // 8. Рекомендації
   const recommendations = []
 
@@ -214,23 +244,30 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
   }
 
   if (deadendIds.size > 0) {
+    const roomWord = ukPlural(deadendIds.size, 'тупикову кімнату', 'тупикові кімнати', 'тупикових кімнат')
     recommendations.push({
       level: 'warning',
-      text: `${deadendIds.size} тупикових кімнат — передбачте альтернативні шляхи виходу`
+      text: `Виявлено ${deadendIds.size} ${roomWord}: ${formatList(deadendRooms)}. Передбачте альтернативні шляхи виходу`
     })
   }
 
   if (!isFullyConnected) {
     recommendations.push({
       level: 'error',
-      text: 'Є ізольовані кімнати — граф не зв\'язний, евакуація неможлива'
+      text: `Є ізольовані кімнати: ${formatList(unreachableRooms)}. Граф не зв'язний, евакуація неможлива`
     })
   }
 
   if (bottlenecks.length > 0) {
+    const placeWord = ukPlural(
+      bottlenecks.length,
+      'потенційне вузьке місце',
+      'потенційні вузькі місця',
+      'потенційних вузьких місць'
+    )
     recommendations.push({
       level: 'warning',
-      text: `${bottlenecks.length} вузьких місць де може виникнути затор під час евакуації`
+      text: `Виявлено ${bottlenecks.length} ${placeWord}: ${formatList(bottleneckRooms)}. На цих ділянках може виникнути затор під час евакуації`
     })
   }
 
@@ -258,6 +295,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms) {
     farthestCornerRoom,
     deadendCount: deadendIds.size,
     isFullyConnected,
+    unreachableRooms,
     roomRanking,
     bottlenecks,
     recommendations,
