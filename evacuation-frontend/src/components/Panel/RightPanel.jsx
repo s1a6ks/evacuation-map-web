@@ -11,7 +11,7 @@ function pxToM(px) { return ((px / GRID) * METER).toFixed(1) }
 
 export default function RightPanel() {
   const {
-    mode, tool, detectedRooms, graphNodes, graphEdges,
+    mode, detectedRooms, graphNodes, graphEdges,
     walls, doors, exits, stairs, extinguishers,
     selectedRoomId, setSelectedRoomId, viewMode,
     selectedStairInfo, setSelectedStairInfo, setStairLink,
@@ -27,19 +27,6 @@ export default function RightPanel() {
 
   const currentPlanName = useStore(s => s.currentPlanName)
   const renameExit = useStore(s => s.renameExit)
-  const selectedRoom = detectedRooms.find(room => room.id === selectedRoomId)
-  const selectedStair = selectedStairInfo?.floorId === currentFloorId
-    ? stairs[selectedStairInfo.idx]
-    : null
-
-  const toolLabels = {
-    select: 'Вибір',
-    wall: 'Стіна',
-    door: 'Двері',
-    exit: 'Вихід',
-    stair: 'Сходи',
-    erase: 'Стерти',
-  }
 
   function currentFloorData() {
     return { walls, doors, exits, stairs, extinguishers, detectedRooms }
@@ -157,40 +144,6 @@ export default function RightPanel() {
               <Row label="Виходів" value={exits.length}         color="#22c984" />
               <Row label="Кімнат"  value={detectedRooms.length} color="#22c984" />
               <Row label="Сходів"  value={stairs.length}        color="#f5c542" />
-            </div>
-          </div>
-
-          <div className="px-4 py-3 border-b border-[#f0f0f0] bg-white">
-            <div className="text-[10px] font-semibold text-[#8d8d8d] uppercase tracking-widest mb-2">Вибрано</div>
-            <div className="rounded-lg border border-[#e8e8e8] bg-[#fafafa] px-2.5 py-2">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="text-[11px] text-[#8d8d8d]">Інструмент</span>
-                <span className="text-[11px] font-medium text-[#1a1a1a]">{toolLabels[tool] ?? tool}</span>
-              </div>
-
-              {selectedRoom ? (
-                <div className="flex items-start gap-2 pt-1.5 border-t border-[#eeeeee]">
-                  <div className="w-2 h-2 rounded-sm bg-[#ff4422] mt-[5px] flex-shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[12px] font-semibold text-[#ff4422] truncate">{selectedRoom.label}</div>
-                    <div className="text-[10px] text-[#8d8d8d]">{selectedRoom.areaM2} м² · кімната</div>
-                  </div>
-                </div>
-              ) : selectedStair ? (
-                <div className="flex items-start gap-2 pt-1.5 border-t border-[#eeeeee]">
-                  <div className="w-2 h-2 rounded-sm bg-[#f5c542] mt-[5px] flex-shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[12px] font-semibold text-[#92400e] truncate">Сходи {selectedStairInfo.idx + 1}</div>
-                    <div className="text-[10px] text-[#8d8d8d]">
-                      {pxToM(selectedStair.x)}м × {pxToM(selectedStair.y)}м
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="pt-1.5 border-t border-[#eeeeee] text-[11px] text-[#9a9a9a] leading-relaxed">
-                  Оберіть інструмент «Вибір» і натисніть на кімнату або сходи.
-                </div>
-              )}
             </div>
           </div>
 
