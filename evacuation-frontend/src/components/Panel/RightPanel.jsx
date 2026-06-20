@@ -4,10 +4,6 @@ import EvacuationPanel from './EvacuationPanel'
 import { exportPlanToPDF, exportAllFloorsToPNG } from '../../utils/pdfExport'
 
 const COLORS = ['#4d9fff', '#22c984', '#f5c542', '#ff4422', '#c084fc', '#fb923c']
-const GRID = 20
-const METER = 0.5
-
-function pxToM(px) { return ((px / GRID) * METER).toFixed(1) }
 
 export default function RightPanel() {
   const {
@@ -223,10 +219,6 @@ export default function RightPanel() {
                   onClick={() => setSelectedStairInfo(null)}
                   className="text-[10px] text-[#999] hover:text-[#ff4422]"
                 >✕</button>
-              </div>
-
-              <div className="text-[10px] text-[#888] mb-1">
-                Позиція: {pxToM(selectedStairInfo.x)}м × {pxToM(selectedStairInfo.y)}м
               </div>
 
               {otherFloors.length === 0 ? (

@@ -347,27 +347,27 @@ function wrapText(ctx, text, maxWidth) {
 
 function drawRecommendationCard(ctx, rec, x, y, w) {
   const style = REC_STYLES[rec.level] || REC_STYLES.warning
-  ctx.font = '17px Manrope, Arial, sans-serif'
-  const lines = wrapText(ctx, rec.text, w - 54)
-  const h = Math.max(70, 34 + Math.min(lines.length, 5) * 22)
+  ctx.font = '14px Manrope, Arial, sans-serif'
+  const lines = wrapText(ctx, rec.text, w - 42)
+  const h = Math.max(52, 24 + Math.min(lines.length, 4) * 18)
 
   ctx.fillStyle = style.bg
   ctx.strokeStyle = style.border
-  ctx.lineWidth = 2
+  ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.roundRect(x, y, w, h, 10)
+  ctx.roundRect(x, y, w, h, 8)
   ctx.fill()
   ctx.stroke()
 
   ctx.fillStyle = style.dot
   ctx.beginPath()
-  ctx.arc(x + 24, y + 28, 6, 0, Math.PI * 2)
+  ctx.arc(x + 16, y + 21, 5, 0, Math.PI * 2)
   ctx.fill()
 
   ctx.fillStyle = style.text
   ctx.textAlign = 'left'
   ctx.textBaseline = 'top'
-  lines.slice(0, 5).forEach((line, i) => ctx.fillText(line, x + 42, y + 18 + i * 22))
+  lines.slice(0, 4).forEach((line, i) => ctx.fillText(line, x + 30, y + 12 + i * 18))
   return h
 }
 
@@ -388,21 +388,21 @@ function drawAnalysisPanel(ctx, evacData, floorData, x, y, w, bottomY) {
 	    )
     : null
 
-  ctx.font = 'bold 22px Manrope, Arial, sans-serif'
+  ctx.font = 'bold 18px Manrope, Arial, sans-serif'
   ctx.fillStyle = '#1a1a1a'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
   ctx.fillText('АНАЛІЗ', x, y)
-  y += 32
+  y += 26
 
   if (!analysis) {
-    ctx.font = '17px Manrope, Arial, sans-serif'
+    ctx.font = '14px Manrope, Arial, sans-serif'
     ctx.fillStyle = '#777'
     ctx.fillText('Дані аналізу відсутні', x, y)
     return
   }
 
-  ctx.font = '17px Manrope, Arial, sans-serif'
+  ctx.font = '14px Manrope, Arial, sans-serif'
   const exitLabel = analysis.stairExitCount > 0 ? `${analysis.exitCount} евак. точ.` : `${analysis.exitCount} вих.`
   ;[
     ['Площа', `${analysis.totalAreaM2} м²`],
@@ -416,24 +416,24 @@ function drawAnalysisPanel(ctx, evacData, floorData, x, y, w, bottomY) {
     ctx.fillStyle = '#1a1a1a'
     ctx.textAlign = 'right'
     ctx.fillText(value, x + w, y)
-    y += 26
+    y += 21
   })
 
-  y += 22
-  ctx.font = 'bold 22px Manrope, Arial, sans-serif'
+  y += 16
+  ctx.font = 'bold 18px Manrope, Arial, sans-serif'
   ctx.fillStyle = '#1a1a1a'
   ctx.textAlign = 'left'
   ctx.fillText('РЕКОМЕНДАЦІЇ', x, y)
-  y += 28
+  y += 22
 
   const recommendations = analysis.recommendations?.length
     ? analysis.recommendations
     : [{ level: 'ok', text: 'План відповідає базовим вимогам безпеки' }]
 
-  for (const rec of recommendations.slice(0, 5)) {
+  for (const rec of recommendations.slice(0, 4)) {
     const cardH = drawRecommendationCard(ctx, rec, x, y, w)
-    y += cardH + 12
-    if (y > bottomY - 84) break
+    y += cardH + 8
+    if (y > bottomY - 60) break
   }
 }
 
@@ -641,8 +641,8 @@ function buildDocumentCanvas(floorData, evacData, planName, floorName) {
   ctx.fillRect(0, 0, W, H)
 
   const CLEAN_M = 44
-  const CLEAN_GAP = 34
-  const CLEAN_RIGHT_W = 390
+  const CLEAN_GAP = 24
+  const CLEAN_RIGHT_W = 310
   const cleanPlanCanvas = buildFloorCanvas(floorData, evacData)
   const cleanPlanAreaW = W - CLEAN_M * 2 - CLEAN_RIGHT_W - CLEAN_GAP
   const cleanPlanAreaH = H - CLEAN_M * 2
