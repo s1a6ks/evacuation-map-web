@@ -65,6 +65,72 @@ function cellKey(cell) {
   return `${cell.row},${cell.col}`
 }
 
+function pointToSegmentDistance(point, segment) {
+  const ax = segment.x1, ay = segment.y1
+  const bx = segment.x2, by = segment.y2
+  const dx = bx - ax
+  const dy = by - ay
+  const len2 = dx * dx + dy * dy
+  if (len2 === 0) return Math.hypot(point.x - ax, point.y - ay)
+
+  const t = Math.max(0, Math.min(1, ((point.x - ax) * dx + (point.y - ay) * dy) / len2))
+  const x = ax + dx * t
+  const y = ay + dy * t
+  return Math.hypot(point.x - x, point.y - y)
+}
+
+function ccw(a, b, c) {
+  return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x)
+}
+
+function segmentsIntersect(a, b, wall) {
+  const c = { x: wall.x1, y: wall.y1 }
+  const d = { x: wall.x2, y: wall.y2 }
+  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
+}
+
+function segmentTouchesWall(a, b, wall) {
+  if (segmentsIntersect(a, b, wall)) return true
+
+  const samples = 6
+  for (let i = 1; i < samples; i++) {
+    const t = i / samples
+    const point = {
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+    }
+    if (pointToSegmentDistance(point, wall) < 2) return true
+  }
+
+  return false
+}
+
+function hasClearLine(a, b, walls, clearance = GRID * 0.45) {
+  const samples = Math.max(4, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (GRID / 2)))
+
+  return !walls.some(wall => {
+    if (segmentTouchesWall(a, b, wall)) return true
+
+    for (let i = 1; i < samples; i++) {
+      const t = i / samples
+      const point = {
+        x: a.x + (b.x - a.x) * t,
+        y: a.y + (b.y - a.y) * t,
+      }
+      if (pointToSegmentDistance(point, wall) < clearance) return true
+    }
+
+    return false
+  })
+}
+
+function wallPenalty(point, walls) {
+  if (walls.length === 0) return 0
+  const minDist = Math.min(...walls.map(wall => pointToSegmentDistance(point, wall)))
+  const comfortable = GRID * 1.2
+  return Math.max(0, comfortable - minDist) * 0.45
+}
+
 function simplifyPolyline(points) {
   if (points.length <= 2) return points
   const simplified = [points[0]]
@@ -92,39 +158,85 @@ function polylineLength(points) {
   return length
 }
 
-function buildRoomPath(room, from, to) {
+function cellCenter(cell) {
+  return {
+    x: cell.col * GRID + GRID / 2,
+    y: cell.row * GRID + GRID / 2,
+  }
+}
+
+function smoothCellPath(points, walls) {
+  if (points.length <= 2) return points
+
+  const smoothed = [points[0]]
+  let current = 0
+
+  while (current < points.length - 1) {
+    let next = points.length - 1
+    while (next > current + 1 && !hasClearLine(points[current], points[next], walls, GRID * 0.55)) {
+      next--
+    }
+    smoothed.push(points[next])
+    current = next
+  }
+
+  return smoothed
+}
+
+function buildRoomPath(room, from, to, walls = []) {
   if (!room?.cells?.length) return null
 
   const start = nearestRoomCell(room, from)
   const finish = nearestRoomCell(room, to)
   if (!start || !finish) return null
 
+  const startPoint = cellCenter(start)
+  const finishPoint = cellCenter(finish)
+  if (hasClearLine(startPoint, finishPoint, walls, GRID * 0.45)) {
+    return simplifyPolyline([{ x: from.x, y: from.y }, startPoint, finishPoint, { x: to.x, y: to.y }])
+  }
+
   const allowed = new Set(room.cells.map(([row, col]) => `${row},${col}`))
-  const queue = [start]
-  const seen = new Set([cellKey(start)])
+  const open = [{ cell: start, score: 0 }]
+  const bestCost = new Map([[cellKey(start), 0]])
   const prev = new Map()
   const directions = [
     { row: -1, col: 0 },
     { row: 1, col: 0 },
     { row: 0, col: -1 },
     { row: 0, col: 1 },
+    { row: -1, col: -1 },
+    { row: -1, col: 1 },
+    { row: 1, col: -1 },
+    { row: 1, col: 1 },
   ]
 
-  while (queue.length > 0) {
-    const cell = queue.shift()
+  while (open.length > 0) {
+    open.sort((a, b) => a.score - b.score)
+    const { cell } = open.shift()
     if (cell.row === finish.row && cell.col === finish.col) break
 
     directions.forEach(direction => {
       const next = { row: cell.row + direction.row, col: cell.col + direction.col }
       const key = cellKey(next)
-      if (!allowed.has(key) || seen.has(key)) return
-      seen.add(key)
+      if (!allowed.has(key)) return
+
+      const fromPoint = cellCenter(cell)
+      const toPoint = cellCenter(next)
+      if (!hasClearLine(fromPoint, toPoint, walls, GRID * 0.2)) return
+
+      const moveCost = Math.hypot(direction.row, direction.col) * GRID + wallPenalty(toPoint, walls)
+      const nextCost = (bestCost.get(cellKey(cell)) ?? Infinity) + moveCost
+      if (nextCost >= (bestCost.get(key) ?? Infinity)) return
+
+      bestCost.set(key, nextCost)
       prev.set(key, cell)
-      queue.push(next)
+      const heuristic = Math.hypot(finish.row - next.row, finish.col - next.col) * GRID
+      open.push({ cell: next, score: nextCost + heuristic })
     })
   }
 
-  if (!seen.has(cellKey(finish))) return null
+  if (!bestCost.has(cellKey(finish))) return null
 
   const cells = []
   let current = finish
@@ -134,12 +246,10 @@ function buildRoomPath(room, from, to) {
     current = prev.get(cellKey(current))
   }
 
+  const cellPoints = smoothCellPath(cells.map(cellCenter), walls)
   const points = [
     { x: from.x, y: from.y },
-    ...cells.map(cell => ({
-      x: cell.col * GRID + GRID / 2,
-      y: cell.row * GRID + GRID / 2,
-    })),
+    ...cellPoints,
     { x: to.x, y: to.y },
   ]
 
@@ -158,7 +268,7 @@ function buildRoomPath(room, from, to) {
 //   doorNode ↔ doorNode в межах кімнати       (транзит door-to-door)
 //   exitNode ↔ doorNode / roomNode            (фінал маршруту)
 //
-export function generateGraph(detectedRooms, doors, exits, stairs) {
+export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
   const nodes = []
   const edges = []
   let uid = 1
@@ -173,7 +283,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs) {
     const b = nodes.find(n => n.id === toId)
     if (!a || !b) return
     const room = roomId ? detectedRooms.find(r => r.id === roomId) : null
-    const points = room ? buildRoomPath(room, a, b) : null
+    const points = room ? buildRoomPath(room, a, b, walls) : null
     const length = points?.length > 1 ? polylineLength(points) : Math.hypot(b.x - a.x, b.y - a.y)
     edges.push({ id: uid++, from: fromId, to: toId, length, points: points ?? null })
   }
@@ -323,7 +433,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs) {
 
 // ── Hook ─────────────────────────────────────────────────────
 export default function useGraphGen() {
-  const { detectedRooms, doors, exits, stairs, setGraph } = useStore()
+  const { detectedRooms, doors, exits, stairs, walls, setGraph } = useStore()
 
   useEffect(() => {
     if (detectedRooms.length === 0 && exits.length === 0 && stairs.length === 0) {
@@ -331,7 +441,7 @@ export default function useGraphGen() {
       return
     }
 
-    const { nodes, edges } = generateGraph(detectedRooms, doors, exits, stairs)
+    const { nodes, edges } = generateGraph(detectedRooms, doors, exits, stairs, walls)
     setGraph(nodes, edges)
-  }, [detectedRooms, doors, exits, stairs, setGraph])
+  }, [detectedRooms, doors, exits, stairs, walls, setGraph])
 }

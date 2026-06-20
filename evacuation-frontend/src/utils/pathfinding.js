@@ -94,7 +94,7 @@ export function findRouteToExit(startNodeId, nodes, edges) {
 function buildFloorGraph(floorData) {
   const { walls = [], doors = [], exits = [], stairs = [] } = floorData
   const rooms = detectRooms(walls, CANVAS_COLS, CANVAS_ROWS)
-  const { nodes, edges } = generateGraph(rooms, doors, exits, stairs)
+  const { nodes, edges } = generateGraph(rooms, doors, exits, stairs, walls)
   return { rooms, nodes, edges }
 }
 
