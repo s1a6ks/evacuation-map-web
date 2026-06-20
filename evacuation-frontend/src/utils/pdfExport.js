@@ -42,7 +42,7 @@ function drawFloorChangeBadge(ctx, node, invScale) {
 
 function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   if (!fullPath || fullPath.length < 2) return
-  const { color = '#009944', lineWidth = 3, arrowSize = 10, arrowStep = 45 } = opts
+  const { color = '#009944', lineWidth = 3, arrowSize = 10, arrowStep = 45, edges = [] } = opts
 
   const floorChangeIdx = fullPath.findIndex(n => n.isFloorChange)
   const path = floorChangeIdx >= 0 ? fullPath.slice(0, floorChangeIdx + 1) : fullPath
@@ -59,13 +59,43 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     return { x: wallNode.x + dx * t, y: wallNode.y + dy * t }
   }
 
+  function findEdge(a, b) {
+    return edges.find(edge =>
+      (edge.from === a.id && edge.to === b.id) ||
+      (edge.from === b.id && edge.to === a.id)
+    )
+  }
+
+  function edgePoints(a, b) {
+    const edge = findEdge(a, b)
+    if (!edge?.points?.length) {
+      return [
+        (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
+        (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
+      ]
+    }
+
+    const points = edge.from === a.id
+      ? edge.points.map(point => ({ x: point.x, y: point.y }))
+      : [...edge.points].reverse().map(point => ({ x: point.x, y: point.y }))
+
+    if (points.length > 1) {
+      points[0] = (a.isDoor || a.isExit) ? wallOffset(a, points[1]) : { x: a.x, y: a.y }
+      points[points.length - 1] = (b.isDoor || b.isExit)
+        ? wallOffset(b, points[points.length - 2])
+        : { x: b.x, y: b.y }
+    }
+
+    return points
+  }
+
   const segments = []
   for (let i = 0; i < path.length - 1; i++) {
     const a = path[i], b = path[i + 1]
-    segments.push({
-      from: (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
-      to:   (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
-    })
+    const points = edgePoints(a, b)
+    for (let j = 0; j < points.length - 1; j++) {
+      segments.push({ from: points[j], to: points[j + 1] })
+    }
   }
 
   ctx.strokeStyle = color; ctx.lineWidth = lineWidth * invScale
@@ -137,18 +167,18 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
 
   // ── Евакуаційні маршрути ──────────────────────────────────
   if (evacData) {
-    const { currentPath, allPaths, evacuationView, multiFloorPath, currentFloorId, multiRoomPaths } = evacData
+    const { currentPath, allPaths, evacuationView, multiFloorPath, currentFloorId, multiRoomPaths, graphEdges = [] } = evacData
     const activePath = multiFloorPath
       ? (multiFloorPath.find(s => s.floorId === currentFloorId)?.path ?? null)
       : currentPath
     if (evacuationView === 'single' && activePath && activePath.length > 1)
-      drawEvacPath(ctx, activePath, invScale, { color: '#009944' })
+      drawEvacPath(ctx, activePath, invScale, { color: '#009944', edges: graphEdges })
     if (evacuationView === 'all' && allPaths && allPaths.length > 0)
-      allPaths.forEach((path, i) => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] }) })
+      allPaths.forEach((path, i) => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length], edges: graphEdges }) })
     if (evacuationView === 'multi' && multiRoomPaths) {
       Object.values(multiRoomPaths).forEach(entry => {
         if (entry?.path && entry.path.length > 1) {
-          drawEvacPath(ctx, entry.path, invScale, { color: entry.color || '#009944' })
+          drawEvacPath(ctx, entry.path, invScale, { color: entry.color || '#009944', edges: graphEdges })
         }
       })
     }
@@ -592,6 +622,31 @@ function buildDocumentCanvas(floorData, evacData, planName, floorName) {
   ctx.fillText('Складено відповідно до ДСТУ ISO 23601:2012', W / 2, footerY + FOOTER_H / 2)
   ctx.textAlign = 'right'
   ctx.fillText('EvacRoute', W - M - 24, footerY + FOOTER_H / 2)
+
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+
+  const CLEAN_M = 44
+  const CLEAN_GAP = 34
+  const CLEAN_RIGHT_W = 390
+  const cleanPlanCanvas = buildFloorCanvas(floorData, evacData)
+  const cleanPlanAreaW = W - CLEAN_M * 2 - CLEAN_RIGHT_W - CLEAN_GAP
+  const cleanPlanAreaH = H - CLEAN_M * 2
+  const cleanRatio = cleanPlanCanvas.height / cleanPlanCanvas.width
+  let cleanImgW = cleanPlanAreaW
+  let cleanImgH = cleanPlanAreaW * cleanRatio
+
+  if (cleanImgH > cleanPlanAreaH) {
+    cleanImgH = cleanPlanAreaH
+    cleanImgW = cleanPlanAreaH / cleanRatio
+  }
+
+  const cleanImgX = CLEAN_M + (cleanPlanAreaW - cleanImgW) / 2
+  const cleanImgY = CLEAN_M + (cleanPlanAreaH - cleanImgH) / 2
+  ctx.drawImage(cleanPlanCanvas, cleanImgX, cleanImgY, cleanImgW, cleanImgH)
+
+  const cleanPanelX = W - CLEAN_M - CLEAN_RIGHT_W
+  drawAnalysisPanel(ctx, evacData, floorData, cleanPanelX, CLEAN_M + 18, CLEAN_RIGHT_W, H - CLEAN_M)
 
   return canvas
 }

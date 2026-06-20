@@ -105,7 +105,7 @@ function drawFloorChangeBadge(ctx, node, invScale, color) {
 
 function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   if (!fullPath || fullPath.length < 2) return
-  const { color = '#009944', lineWidth = 3, arrowSize = 10, arrowStep = 45, showStartDot = true, showExitMarker = true } = opts
+  const { color = '#009944', lineWidth = 3, arrowSize = 10, arrowStep = 45, showStartDot = true, showExitMarker = true, edges = [] } = opts
 
   const floorChangeIdx = fullPath.findIndex(n => n.isFloorChange)
   const path = floorChangeIdx >= 0 ? fullPath.slice(0, floorChangeIdx + 1) : fullPath
@@ -125,14 +125,44 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     return { x: wallNode.x + dx * t, y: wallNode.y + dy * t }
   }
 
+  function findEdge(a, b) {
+    return edges.find(edge =>
+      (edge.from === a.id && edge.to === b.id) ||
+      (edge.from === b.id && edge.to === a.id)
+    )
+  }
+
+  function edgePoints(a, b) {
+    const edge = findEdge(a, b)
+    if (!edge?.points?.length) {
+      return [
+        (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
+        (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
+      ]
+    }
+
+    const points = edge.from === a.id
+      ? edge.points.map(point => ({ x: point.x, y: point.y }))
+      : [...edge.points].reverse().map(point => ({ x: point.x, y: point.y }))
+
+    if (points.length > 1) {
+      points[0] = (a.isDoor || a.isExit) ? wallOffset(a, points[1]) : { x: a.x, y: a.y }
+      points[points.length - 1] = (b.isDoor || b.isExit)
+        ? wallOffset(b, points[points.length - 2])
+        : { x: b.x, y: b.y }
+    }
+
+    return points
+  }
+
   // Будуємо масив сегментів з обрізаними кінцями біля стін
   const segments = []
   for (let i = 0; i < path.length - 1; i++) {
     const a = path[i], b = path[i + 1]
-    segments.push({
-      from: (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
-      to: (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
-    })
+    const points = edgePoints(a, b)
+    for (let j = 0; j < points.length - 1; j++) {
+      segments.push({ from: points[j], to: points[j + 1] })
+    }
   }
 
   // Малюємо кожен сегмент окремо (зазор біля стін — навмисний)
@@ -220,6 +250,7 @@ export default function useRender(canvasRef) {
     const startY = -offset.y * invScale
     const endX = startX + W * invScale
     const endY = startY + H * invScale
+    const edgeWeightLabels = []
 
     // ══════════════════════════════════════════════════════════
     //  DOT GRID (advanced, Figma-style)
@@ -290,21 +321,24 @@ export default function useRender(canvasRef) {
         ctx.strokeStyle = onPath ? '#10b981' : '#bfdbfe'
         ctx.lineWidth = (onPath ? 2.5 : 1) * invScale
         ctx.setLineDash(onPath ? [6 * invScale, 3 * invScale] : [3 * invScale, 3 * invScale])
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
+        const edgePoints = edge.points?.length
+          ? (edge.from === a.id ? edge.points : [...edge.points].reverse())
+          : [a, b]
+
+        ctx.beginPath()
+        edgePoints.forEach((point, idx) => {
+          if (idx === 0) ctx.moveTo(point.x, point.y)
+          else ctx.lineTo(point.x, point.y)
+        })
+        ctx.stroke()
         ctx.setLineDash([])
 
         // Ваги ребер: завжди для onPath, або для всіх якщо showEdgeWeights
         if (onPath || showEdgeWeights) {
-          const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2
-          const meters = (Math.hypot(b.x - a.x, b.y - a.y) / GRID * METER).toFixed(1)
-          ctx.fillStyle = onPath ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.82)'
-          ctx.beginPath()
-          ctx.roundRect(mx - 14 * invScale, my - 7 * invScale, 28 * invScale, 14 * invScale, 2 * invScale)
-          ctx.fill()
-          ctx.fillStyle = onPath ? '#10b981' : '#94a3b8'
-          ctx.font = `${8 * invScale}px JetBrains Mono, monospace`
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          ctx.fillText(`${meters}м`, mx, my)
+          const midPoint = edgePoints[Math.floor(edgePoints.length / 2)] ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+          const mx = midPoint.x, my = midPoint.y
+          const meters = ((edge.length ?? Math.hypot(b.x - a.x, b.y - a.y)) / GRID * METER).toFixed(1)
+          edgeWeightLabels.push({ mx, my, meters, onPath })
         }
       })
 
@@ -336,22 +370,22 @@ export default function useRender(canvasRef) {
 
     if (mode === 'evacuation' && isSimple) {
       if (evacuationView === 'single' && activePath && activePath.length > 1)
-        drawEvacPath(ctx, activePath, invScale, { color: '#009944' })
+        drawEvacPath(ctx, activePath, invScale, { color: '#009944', edges: graphEdges })
       if (evacuationView === 'all' && allPaths.length > 0)
-        allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] }) })
+        allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length], edges: graphEdges }) })
     }
     if (mode === 'evacuation' && isAdvanced) {
       if (activePath && activePath.length > 1)
-        drawEvacPath(ctx, activePath, invScale, { color: '#10b981', lineWidth: 2.5 })
+        drawEvacPath(ctx, activePath, invScale, { color: '#10b981', lineWidth: 2.5, edges: graphEdges })
       if (evacuationView === 'all' && allPaths.length > 0)
-        allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] + 'cc', lineWidth: 2 }) })
+        allPaths.forEach((p, i) => { if (p && p.length > 1) drawEvacPath(ctx, p, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length] + 'cc', lineWidth: 2, edges: graphEdges }) })
     }
 
     // ── Мульти-кімнатні маршрути (обидва режими) ───────────────
     if (mode === 'evacuation' && evacuationView === 'multi' && multiRoomPaths) {
       Object.entries(multiRoomPaths).forEach(([, entry]) => {
         if (entry.path && entry.path.length > 1)
-          drawEvacPath(ctx, entry.path, invScale, { color: entry.color, lineWidth: isAdvanced ? 2.5 : 3 })
+          drawEvacPath(ctx, entry.path, invScale, { color: entry.color, lineWidth: isAdvanced ? 2.5 : 3, edges: graphEdges })
       })
     }
 
@@ -586,7 +620,7 @@ export default function useRender(canvasRef) {
     // ══════════════════════════════════════════════════════════
     //  ПІДПИСИ КІМНАТ
     // ══════════════════════════════════════════════════════════
-    detectedRooms.forEach((room, i) => {
+	    detectedRooms.forEach((room, i) => {
       const isSelected = room.id === selectedRoomId
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
 
@@ -622,7 +656,23 @@ export default function useRender(canvasRef) {
         ctx.fillStyle = isSelected ? '#ff7755' : '#94a3b8'
         ctx.fillText(`${room.areaM2}м²`, room.cx, room.cy + nameSize / 2 + 1 * invScale)
       }
-    })
+	    })
+
+    if (isAdvanced && edgeWeightLabels.length > 0) {
+      edgeWeightLabels.forEach(({ mx, my, meters, onPath }) => {
+        ctx.fillStyle = onPath ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.9)'
+        ctx.strokeStyle = onPath ? 'rgba(16,185,129,0.28)' : 'rgba(148,163,184,0.25)'
+        ctx.lineWidth = 0.8 * invScale
+        ctx.beginPath()
+        ctx.roundRect(mx - 14 * invScale, my - 7 * invScale, 28 * invScale, 14 * invScale, 2 * invScale)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillStyle = onPath ? '#10b981' : '#64748b'
+        ctx.font = `${8 * invScale}px JetBrains Mono, monospace`
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillText(`${meters}м`, mx, my)
+      })
+    }
 
     // ══════════════════════════════════════════════════════════
     //  PREVIEW МАЛЮВАННЯ

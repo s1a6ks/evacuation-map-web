@@ -98,6 +98,40 @@ function bfsFill(grid, startRow, startCol, rows, cols, targetVal, fillVal, block
   return cells
 }
 
+function findRoomAnchor(cells) {
+  const cellSet = new Set(cells.map(([row, col]) => `${row},${col}`))
+  const avgRow = cells.reduce((sum, [row]) => sum + row, 0) / cells.length
+  const avgCol = cells.reduce((sum, [, col]) => sum + col, 0) / cells.length
+
+  let best = cells[0]
+  let bestScore = -Infinity
+
+  cells.forEach(([row, col]) => {
+    let minDistToEdge = Infinity
+
+    cells.forEach(([otherRow, otherCol]) => {
+      const isBoundary =
+        !cellSet.has(`${otherRow - 1},${otherCol}`) ||
+        !cellSet.has(`${otherRow + 1},${otherCol}`) ||
+        !cellSet.has(`${otherRow},${otherCol - 1}`) ||
+        !cellSet.has(`${otherRow},${otherCol + 1}`)
+
+      if (isBoundary) {
+        minDistToEdge = Math.min(minDistToEdge, Math.hypot(row - otherRow, col - otherCol))
+      }
+    })
+
+    const distToAverage = Math.hypot(row - avgRow, col - avgCol)
+    const score = minDistToEdge * 10 - distToAverage
+    if (score > bestScore) {
+      bestScore = score
+      best = [row, col]
+    }
+  })
+
+  return best
+}
+
 export function detectRooms(walls) {
   if (walls.length === 0) return []
 
@@ -143,11 +177,10 @@ export function detectRooms(walls) {
       if (grid[row][col] === 0) {
         const cells = bfsFill(grid, row, col, rows, cols, 0, 3 + roomIndex, blockedEdges)
         if (cells.length >= MIN_ROOM_CELLS) {
-          const sumRow = cells.reduce((sum, [cellRow]) => sum + cellRow, 0)
-          const sumCol = cells.reduce((sum, [, cellCol]) => sum + cellCol, 0)
+          const [anchorRow, anchorCol] = findRoomAnchor(cells)
 
-          const cx = ((sumCol / cells.length) + minCol) * GRID + GRID / 2
-          const cy = ((sumRow / cells.length) + minRow) * GRID + GRID / 2
+          const cx = (anchorCol + minCol) * GRID + GRID / 2
+          const cy = (anchorRow + minRow) * GRID + GRID / 2
           const worldCells = cells.map(([cellRow, cellCol]) => [cellRow + minRow, cellCol + minCol])
           const areaM2 = (cells.length * METER * METER).toFixed(1)
           const label = `Кімната ${roomIndex + 1}`
