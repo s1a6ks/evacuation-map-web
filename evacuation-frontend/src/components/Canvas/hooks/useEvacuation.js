@@ -37,6 +37,16 @@ function findElementAtPixel(elements, px, py) {
   return best  // null або індекс
 }
 
+function makeStairSelectionId(floorId, stairIdx) {
+  return `stair:${floorId}:${stairIdx}`
+}
+
+function parseStairSelectionId(id) {
+  if (typeof id !== 'string' || !id.startsWith('stair:')) return null
+  const [, floorId, stairIdx] = id.split(':')
+  return { floorId: Number(floorId), stairIdx: Number(stairIdx) }
+}
+
 export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
   const {
     mode, evacuationView,
@@ -51,6 +61,7 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     stairLinks,
     blockedExits, blockedDoors,
     selectedRoomId, selectedRoomIds,
+    selectedStairInfo, setSelectedStairInfo,
     toggleBlockedExit, toggleBlockedDoor,
     toggleSelectedRoomId, setMultiRoomPaths,
   } = useStore()
@@ -86,6 +97,15 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
 
     if (blockedIds.size === 0) return graphNodes
     return graphNodes.filter(n => !blockedIds.has(n.id))
+  }
+
+  function findStairNode(stair) {
+    if (!stair) return null
+    return graphNodes.find(n =>
+      n.isStair &&
+      Math.abs(n.x - stair.x) < 2 &&
+      Math.abs(n.y - stair.y) < 2
+    ) ?? null
   }
 
   // ── Локальний пошук з метриками ────────────────────────────
@@ -126,18 +146,23 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     }
   }
   // ── Мульти-кімнатний режим ─────────────────────────────────
-  function computeMultiRoomPaths(roomIdsToCompute) {
+  function computeMultiRoomPaths(routeIdsToCompute) {
     const effectiveNodes = getEffectiveNodes()
     const result = {}
-    roomIdsToCompute.forEach((roomId, i) => {
-      const room = detectedRooms.find(r => r.id === roomId)
-      const roomNode = graphNodes.find(n => n.roomId === roomId)
-      if (!roomNode) return
-      const route = findRouteWithMetrics(roomNode.id, effectiveNodes, graphEdges, algorithm === 'astar')
-      result[roomId] = {
+    routeIdsToCompute.forEach((routeId, i) => {
+      const stairSelection = parseStairSelectionId(routeId)
+      const stair = stairSelection?.floorId === currentFloorId ? stairs[stairSelection.stairIdx] : null
+      const stairNode = stair ? findStairNode(stair) : null
+      const room = stairSelection ? null : detectedRooms.find(r => r.id === routeId)
+      const startNode = stairNode ?? graphNodes.find(n => n.roomId === routeId)
+
+      if (!startNode) return
+      const route = findRouteWithMetrics(startNode.id, effectiveNodes, graphEdges, algorithm === 'astar')
+      result[routeId] = {
         path: route?.path ?? null,
         color: MULTI_COLORS[i % MULTI_COLORS.length],
-        label: room?.label ?? roomId,
+        label: stair ? `Сходи ${stairSelection.stairIdx + 1}` : (room?.label ?? routeId),
+        type: stair ? 'stair' : 'room',
         distPx: route?.distPx ?? null,
         ms: route?.ms ?? null,
       }
@@ -148,7 +173,7 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
   // ── Загальний план ─────────────────────────────────────────
   function computeAllPaths() {
     const paths = []
-    for (const node of graphNodes.filter(n => n.roomId != null && !n.isExit)) {
+    for (const node of graphNodes.filter(n => (n.roomId != null && !n.isExit) || n.isStair)) {
       const result = findLocalRoute(node.id)
       if (result?.segments) {
         const seg = result.segments.find(s => s.floorId === currentFloorId)
@@ -174,6 +199,12 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     if (selectedRoomId) {
       const roomNode = graphNodes.find(n => n.roomId === selectedRoomId)
       saveRoute(roomNode ? findLocalRoute(roomNode.id) : null)
+      return
+    }
+
+    if (selectedStairInfo?.floorId === currentFloorId) {
+      const stairNode = findStairNode(selectedStairInfo)
+      saveRoute(stairNode ? findLocalRoute(stairNode.id) : null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockedExits, blockedDoors, algorithm, evacuationView])
@@ -184,6 +215,23 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     const rect = e.currentTarget.getBoundingClientRect()
     const px = (e.clientX - rect.left - offset.x) / scale
     const py = (e.clientY - rect.top - offset.y) / scale
+
+    const stairIdx = findElementAtPixel(stairs, px, py)
+    if (stairIdx !== null && evacuationView === 'single') {
+      const stair = stairs[stairIdx]
+      const stairNode = findStairNode(stair)
+      setSelectedRoomId(null)
+      setSelectedStairInfo({ floorId: currentFloorId, idx: stairIdx, x: stair.x, y: stair.y })
+      saveRoute(stairNode ? findLocalRoute(stairNode.id) : null)
+      return
+    }
+
+    if (stairIdx !== null && evacuationView === 'multi') {
+      toggleSelectedRoomId(makeStairSelectionId(currentFloorId, stairIdx))
+      const fresh = useStore.getState()
+      computeMultiRoomPaths(fresh.selectedRoomIds)
+      return
+    }
 
     // ── Пріоритет: клік на вихід → toggle блокування ────────
     const exitIdx = findElementAtPixel(exits, px, py)
@@ -261,10 +309,12 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     if (!room) {
       setCurrentPath(null)
       setSelectedRoomId(null)
+      setSelectedStairInfo(null)
       return
     }
 
     setSelectedRoomId(room.id)
+    setSelectedStairInfo(null)
     const roomNode = graphNodes.find(n => n.roomId === room.id)
     if (!roomNode) { setCurrentPath(null); return }
 

@@ -138,16 +138,15 @@ export default function EvacuationPanel() {
 
       {/* ── Мульти-кімнатні маршрути ── */}
       {evacuationView === 'multi' && selectedRoomIds?.length > 0 && (
-        <Section title="Обрані кімнати">
+        <Section title="Обрані точки">
           <div className="flex flex-col gap-[4px] mb-2">
             {selectedRoomIds.map((roomId) => {
               const entry = multiRoomPaths?.[roomId]
-              const room = detectedRooms.find(r => r.id === roomId)
               const distM = entry?.distPx ? ((entry.distPx / 20) * 0.5).toFixed(1) : null
               return (
                 <div key={roomId} className="flex items-center gap-2 py-[5px] px-2 rounded-md bg-[#f9f9f9] border border-[#f0f0f0]">
                   <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: entry?.color ?? '#ccc' }} />
-                  <span className="text-[11px] flex-1 truncate text-[#444]">{room?.label ?? roomId}</span>
+                  <span className="text-[11px] flex-1 truncate text-[#444]">{entry?.label ?? roomId}</span>
                   <span className="text-[10px] font-mono text-[#888] flex-shrink-0">
                     {distM ? `${distM}м` : entry?.path ? '?' : '∞'}
                   </span>

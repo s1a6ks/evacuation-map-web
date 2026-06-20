@@ -89,14 +89,17 @@ function segmentsIntersect(a, b, wall) {
   return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
 }
 
-function isNearPortal(point, portals, radius = GRID * 1.15) {
-  return portals.some(portal => Math.hypot(point.x - portal.x, point.y - portal.y) <= radius)
+function isNearPortalOpening(point, wall, portals, radius = GRID * 1.15) {
+  return portals.some(portal =>
+    Math.hypot(point.x - portal.x, point.y - portal.y) <= radius &&
+    pointToSegmentDistance(portal, wall) <= GRID * 0.2
+  )
 }
 
 function segmentTouchesWall(a, b, wall, portals = []) {
   const touchesEndpoint =
-    pointToSegmentDistance(a, wall) < 2 ||
-    pointToSegmentDistance(b, wall) < 2
+    (pointToSegmentDistance(a, wall) < 2 && isNearPortalOpening(a, wall, portals)) ||
+    (pointToSegmentDistance(b, wall) < 2 && isNearPortalOpening(b, wall, portals))
 
   if (segmentsIntersect(a, b, wall) && !touchesEndpoint) return true
 
@@ -107,7 +110,7 @@ function segmentTouchesWall(a, b, wall, portals = []) {
       x: a.x + (b.x - a.x) * t,
       y: a.y + (b.y - a.y) * t,
     }
-    if (pointToSegmentDistance(point, wall) < 2 && !isNearPortal(point, portals)) return true
+    if (pointToSegmentDistance(point, wall) < 2 && !isNearPortalOpening(point, wall, portals)) return true
   }
 
   return false
@@ -125,7 +128,7 @@ function hasClearLine(a, b, walls, clearance = GRID * 0.45, portals = []) {
         x: a.x + (b.x - a.x) * t,
         y: a.y + (b.y - a.y) * t,
       }
-      if (pointToSegmentDistance(point, wall) < clearance && !isNearPortal(point, portals)) return true
+      if (pointToSegmentDistance(point, wall) < clearance && !isNearPortalOpening(point, wall, portals)) return true
     }
 
     return false
