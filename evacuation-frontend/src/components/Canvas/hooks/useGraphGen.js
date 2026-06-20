@@ -89,8 +89,16 @@ function segmentsIntersect(a, b, wall) {
   return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
 }
 
-function segmentTouchesWall(a, b, wall) {
-  if (segmentsIntersect(a, b, wall)) return true
+function isNearPortal(point, portals, radius = GRID * 1.15) {
+  return portals.some(portal => Math.hypot(point.x - portal.x, point.y - portal.y) <= radius)
+}
+
+function segmentTouchesWall(a, b, wall, portals = []) {
+  const touchesEndpoint =
+    pointToSegmentDistance(a, wall) < 2 ||
+    pointToSegmentDistance(b, wall) < 2
+
+  if (segmentsIntersect(a, b, wall) && !touchesEndpoint) return true
 
   const samples = 6
   for (let i = 1; i < samples; i++) {
@@ -99,17 +107,17 @@ function segmentTouchesWall(a, b, wall) {
       x: a.x + (b.x - a.x) * t,
       y: a.y + (b.y - a.y) * t,
     }
-    if (pointToSegmentDistance(point, wall) < 2) return true
+    if (pointToSegmentDistance(point, wall) < 2 && !isNearPortal(point, portals)) return true
   }
 
   return false
 }
 
-function hasClearLine(a, b, walls, clearance = GRID * 0.45) {
+function hasClearLine(a, b, walls, clearance = GRID * 0.45, portals = []) {
   const samples = Math.max(4, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (GRID / 2)))
 
   return !walls.some(wall => {
-    if (segmentTouchesWall(a, b, wall)) return true
+    if (segmentTouchesWall(a, b, wall, portals)) return true
 
     for (let i = 1; i < samples; i++) {
       const t = i / samples
@@ -117,7 +125,7 @@ function hasClearLine(a, b, walls, clearance = GRID * 0.45) {
         x: a.x + (b.x - a.x) * t,
         y: a.y + (b.y - a.y) * t,
       }
-      if (pointToSegmentDistance(point, wall) < clearance) return true
+      if (pointToSegmentDistance(point, wall) < clearance && !isNearPortal(point, portals)) return true
     }
 
     return false
@@ -165,7 +173,7 @@ function cellCenter(cell) {
   }
 }
 
-function smoothCellPath(points, walls) {
+function smoothCellPath(points, walls, portals = []) {
   if (points.length <= 2) return points
 
   const smoothed = [points[0]]
@@ -173,7 +181,7 @@ function smoothCellPath(points, walls) {
 
   while (current < points.length - 1) {
     let next = points.length - 1
-    while (next > current + 1 && !hasClearLine(points[current], points[next], walls, GRID * 0.55)) {
+    while (next > current + 1 && !hasClearLine(points[current], points[next], walls, GRID * 0.55, portals)) {
       next--
     }
     smoothed.push(points[next])
@@ -192,8 +200,19 @@ function buildRoomPath(room, from, to, walls = []) {
 
   const startPoint = cellCenter(start)
   const finishPoint = cellCenter(finish)
-  if (hasClearLine(startPoint, finishPoint, walls, GRID * 0.45)) {
-    return simplifyPolyline([{ x: from.x, y: from.y }, startPoint, finishPoint, { x: to.x, y: to.y }])
+  const portals = [{ x: from.x, y: from.y }, { x: to.x, y: to.y }]
+
+  if (hasClearLine(from, to, walls, GRID * 0.45, portals)) {
+    return [{ x: from.x, y: from.y }, { x: to.x, y: to.y }]
+  }
+
+  if (hasClearLine(startPoint, finishPoint, walls, GRID * 0.45, portals)) {
+    return simplifyPolyline(smoothCellPath([
+      { x: from.x, y: from.y },
+      startPoint,
+      finishPoint,
+      { x: to.x, y: to.y },
+    ], walls, portals))
   }
 
   const allowed = new Set(room.cells.map(([row, col]) => `${row},${col}`))
@@ -223,7 +242,7 @@ function buildRoomPath(room, from, to, walls = []) {
 
       const fromPoint = cellCenter(cell)
       const toPoint = cellCenter(next)
-      if (!hasClearLine(fromPoint, toPoint, walls, GRID * 0.2)) return
+      if (!hasClearLine(fromPoint, toPoint, walls, GRID * 0.2, portals)) return
 
       const moveCost = Math.hypot(direction.row, direction.col) * GRID + wallPenalty(toPoint, walls)
       const nextCost = (bestCost.get(cellKey(cell)) ?? Infinity) + moveCost
@@ -246,14 +265,13 @@ function buildRoomPath(room, from, to, walls = []) {
     current = prev.get(cellKey(current))
   }
 
-  const cellPoints = smoothCellPath(cells.map(cellCenter), walls)
   const points = [
     { x: from.x, y: from.y },
-    ...cellPoints,
+    ...cells.map(cellCenter),
     { x: to.x, y: to.y },
   ]
 
-  return simplifyPolyline(points)
+  return simplifyPolyline(smoothCellPath(points, walls, portals))
 }
 
 // ── Генерація графа ──────────────────────────────────────────

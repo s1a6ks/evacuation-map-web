@@ -105,7 +105,16 @@ function drawFloorChangeBadge(ctx, node, invScale, color) {
 
 function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   if (!fullPath || fullPath.length < 2) return
-  const { color = '#009944', lineWidth = 3, arrowSize = 10, arrowStep = 45, showStartDot = true, showExitMarker = true, edges = [] } = opts
+  const {
+    color = '#009944',
+    lineWidth = 3,
+    arrowSize = 9,
+    arrowStep = 70,
+    minArrowSegment = 28,
+    showStartDot = true,
+    showExitMarker = true,
+    edges = [],
+  } = opts
 
   const floorChangeIdx = fullPath.findIndex(n => n.isFloorChange)
   const path = floorChangeIdx >= 0 ? fullPath.slice(0, floorChangeIdx + 1) : fullPath
@@ -183,7 +192,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     const dx = seg.to.x - seg.from.x
     const dy = seg.to.y - seg.from.y
     const segLen = Math.hypot(dx, dy)
-    if (segLen < 1) { walked += segLen; return }
+    if (segLen < minArrowSegment * invScale) { walked += segLen; return }
     const angle = Math.atan2(dy, dx)
     while (nextArrow <= walked + segLen) {
       const t = (nextArrow - walked) / segLen

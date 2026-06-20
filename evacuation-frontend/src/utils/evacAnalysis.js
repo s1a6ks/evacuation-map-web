@@ -89,12 +89,42 @@ function getRoomLabelByNode(node, detectedRooms) {
 export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, options = {}) {
   if (graphNodes.length === 0) return null
 
-  const { stairLinks = {}, currentFloorId = null } = options
+  const {
+    stairLinks = {},
+    currentFloorId = null,
+    blockedExits = [],
+    blockedDoors = [],
+    exits = [],
+    doors = [],
+  } = options
+  const blockedNodeIds = new Set()
+
+  blockedExits.forEach(idx => {
+    const exit = exits[idx]
+    if (!exit) return
+    graphNodes.forEach(node => {
+      if (node.isExit && Math.hypot(node.x - exit.x, node.y - exit.y) < 2) {
+        blockedNodeIds.add(node.id)
+      }
+    })
+  })
+
+  blockedDoors.forEach(idx => {
+    const door = doors[idx]
+    if (!door) return
+    graphNodes.forEach(node => {
+      if (node.isDoor && Math.hypot(node.x - door.x, node.y - door.y) < 2) {
+        blockedNodeIds.add(node.id)
+      }
+    })
+  })
+
+  const activeGraphNodes = graphNodes.filter(node => !blockedNodeIds.has(node.id))
   const stairKey = node => `${currentFloorId}:${node.x}:${node.y}`
   const isLinkedStair = node => Boolean(node?.isStair && currentFloorId != null && stairLinks?.[stairKey(node)])
-  const adj = buildAdjacency(graphNodes, graphEdges, e => pxToM(e.length))
-  const exitNodes = graphNodes.filter(n => n.isExit)
-  const linkedStairNodes = graphNodes.filter(isLinkedStair)
+  const adj = buildAdjacency(activeGraphNodes, graphEdges, e => pxToM(e.length))
+  const exitNodes = activeGraphNodes.filter(n => n.isExit)
+  const linkedStairNodes = activeGraphNodes.filter(isLinkedStair)
   const evacuationNodes = [...exitNodes, ...linkedStairNodes]
 
   // 1. Загальна площа поверху
@@ -114,7 +144,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
   // 3. Тупикові кімнати
   const deadendIds = new Set()
   adj.forEach((neighbors, id) => {
-    const node = graphNodes.find(n => n.id === id)
+    const node = activeGraphNodes.find(n => n.id === id)
     if (!node || node.isExit || node.isStair || node.isDoor) return
     
     if (neighbors.length === 0) {
@@ -125,7 +155,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
       const doorNeighbors = adj.get(doorId) || []
       
       const leadsToSafeZone = doorNeighbors.some(n => {
-        const neighborNode = graphNodes.find(gn => gn.id === n.to)
+        const neighborNode = activeGraphNodes.find(gn => gn.id === n.to)
         if (!neighborNode) return false
         if (neighborNode.isExit) return true // Веде одразу на вулицю
         if (isLinkedStair(neighborNode)) return true
@@ -147,7 +177,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
 
   // 4. Рейтинг кімнат за відстанню до найближчого виходу
   const distToExit = new Map()
-  graphNodes.forEach(n => distToExit.set(n.id, Infinity))
+  activeGraphNodes.forEach(n => distToExit.set(n.id, Infinity))
 
   evacuationNodes.forEach(evacuationNode => {
     const { dist } = dijkstra(evacuationNode.id, adj)
@@ -160,7 +190,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
 
   const roomRanking = detectedRooms
     .map(room => {
-      const node = graphNodes.find(n => n.roomId === room.id)
+      const node = activeGraphNodes.find(n => n.roomId === room.id)
       const dist = node ? (distToExit.get(node.id) ?? Infinity) : Infinity
       const isDeadend = node ? deadendIds.has(node.id) : false
       return {
@@ -183,11 +213,13 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
   let unreachableRooms = []
   if (evacuationNodes.length > 0) {
     const { dist } = dijkstra(evacuationNodes[0].id, adj)
-    const unreachable = graphNodes
+    const unreachable = activeGraphNodes
       .filter(n => n.roomId != null)
       .filter(n => (dist.get(n.id) ?? Infinity) === Infinity)
     isFullyConnected = unreachable.length === 0
     unreachableRooms = unreachable.map(node => getRoomLabelByNode(node, detectedRooms))
+  } else {
+    unreachableRooms = detectedRooms.map(room => room.label)
   }
 
   // 6. Найдальша точка на поверсі від виходу (кути всіх кімнат)
@@ -210,7 +242,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
   })
 
   // 7. Вузькі місця
-  const bottlenecks = graphNodes
+  const bottlenecks = activeGraphNodes
     .filter(n => !n.isExit && !n.isDoor && n.roomId != null) // Двері технічно мають багато ребер для транзиту, відкидаємо їх
     .map(n => {
       const room = detectedRooms.find(r => r.id === n.roomId)
@@ -227,7 +259,7 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
     .sort((a, b) => b.degree - a.degree)
     .slice(0, 3)
 
-  const deadendRooms = graphNodes
+  const deadendRooms = activeGraphNodes
     .filter(node => deadendIds.has(node.id))
     .map(node => getRoomLabelByNode(node, detectedRooms))
 

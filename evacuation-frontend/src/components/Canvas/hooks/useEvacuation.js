@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import useStore from '../../../store/useStore'
 import {
   findMultiFloorRouteWithLinks,
@@ -49,6 +50,7 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     walls, doors, exits, stairs,
     stairLinks,
     blockedExits, blockedDoors,
+    selectedRoomId, selectedRoomIds,
     toggleBlockedExit, toggleBlockedDoor,
     toggleSelectedRoomId, setMultiRoomPaths,
   } = useStore()
@@ -155,6 +157,26 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     }
     setAllPaths(paths)
   }
+
+  useEffect(() => {
+    if (mode !== 'evacuation') return
+
+    if (evacuationView === 'all') {
+      computeAllPaths()
+      return
+    }
+
+    if (evacuationView === 'multi') {
+      computeMultiRoomPaths(selectedRoomIds)
+      return
+    }
+
+    if (selectedRoomId) {
+      const roomNode = graphNodes.find(n => n.roomId === selectedRoomId)
+      saveRoute(roomNode ? findLocalRoute(roomNode.id) : null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockedExits, blockedDoors, algorithm, evacuationView])
 
   async function handleEvacuationClick(e) {
     if (mode !== 'evacuation') return

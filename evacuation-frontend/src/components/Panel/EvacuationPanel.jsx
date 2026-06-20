@@ -36,7 +36,7 @@ function MetricRow({ label, value, sub, highlight }) {
 export default function EvacuationPanel() {
   const {
     currentPath, multiFloorPath, graphNodes, graphEdges,
-    detectedRooms, doors,
+    detectedRooms, doors, exits,
     algorithm, setAlgorithm,
     evacuationView, setEvacuationView,
     setAllPaths,
@@ -60,7 +60,14 @@ export default function EvacuationPanel() {
   })()
 
   const metrics = computeRouteMetrics(activePath, graphEdges, doors)
-  const analysis = computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, { stairLinks, currentFloorId })
+  const analysis = computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, {
+    stairLinks,
+    currentFloorId,
+    blockedExits,
+    blockedDoors,
+    exits,
+    doors,
+  })
   const selectedRoom = detectedRooms.find(r => r.id === selectedRoomId)
 
   function handleClearRoute() {

@@ -18,6 +18,7 @@ export default function RightPanel() {
     setRoomName,
     stairLinks, floors, currentFloorId, floorDataMap,
     currentPath, allPaths, evacuationView, multiFloorPath,
+    blockedExits, blockedDoors,
   } = useStore()
 
   const [editingRoom, setEditingRoom] = useState(null)
@@ -43,6 +44,10 @@ export default function RightPanel() {
       graphEdges,
       detectedRooms,
       stairLinks,
+      blockedExits,
+      blockedDoors,
+      exits,
+      doors,
       multiRoomPaths: useStore.getState().multiRoomPaths,
     }
   }
