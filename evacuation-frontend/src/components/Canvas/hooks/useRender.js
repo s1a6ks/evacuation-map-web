@@ -392,7 +392,7 @@ export default function useRender(canvasRef) {
     // ══════════════════════════════════════════════════════════
     //  СТІНИ
     // ══════════════════════════════════════════════════════════
-    const wallThickness = isSimple ? 3 : 5
+    const wallThickness = 5
     const wallColor = isSimple ? '#111827' : '#1e293b'
     walls.forEach(wall => {
       const dx = wall.x2 - wall.x1, dy = wall.y2 - wall.y1
