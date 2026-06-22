@@ -36,6 +36,20 @@ function getAdjacentRooms(item, detectedRooms) {
   return [...new Map(rooms.map(room => [room.id, room])).values()]
 }
 
+function getRoomContainingPoint(point, detectedRooms) {
+  const candidates = [
+    { col: Math.floor(point.x / GRID), row: Math.floor(point.y / GRID) },
+    { col: Math.round(point.x / GRID), row: Math.round(point.y / GRID) },
+  ]
+
+  for (const candidate of candidates) {
+    const room = findRoomAtCell(detectedRooms, candidate.col, candidate.row)
+    if (room) return room
+  }
+
+  return null
+}
+
 // ── Найближчий вузол ─────────────────────────────────────────
 function nearestNode(nodes, x, y, maxDist = Infinity) {
   let best = null, bestD = maxDist
@@ -79,17 +93,57 @@ function pointToSegmentDistance(point, segment) {
   return Math.hypot(point.x - x, point.y - y)
 }
 
-function ccw(a, b, c) {
-  return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x)
+function orientation(a, b, c) {
+  const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y)
+  if (Math.abs(value) < 0.001) return 0
+  return value > 0 ? 1 : 2
+}
+
+function onSegment(a, b, c) {
+  return (
+    b.x <= Math.max(a.x, c.x) + 0.001 &&
+    b.x + 0.001 >= Math.min(a.x, c.x) &&
+    b.y <= Math.max(a.y, c.y) + 0.001 &&
+    b.y + 0.001 >= Math.min(a.y, c.y)
+  )
 }
 
 function segmentsIntersect(a, b, wall) {
   const c = { x: wall.x1, y: wall.y1 }
   const d = { x: wall.x2, y: wall.y2 }
-  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d)
+  const o1 = orientation(a, b, c)
+  const o2 = orientation(a, b, d)
+  const o3 = orientation(c, d, a)
+  const o4 = orientation(c, d, b)
+
+  if (o1 !== o2 && o3 !== o4) return true
+  if (o1 === 0 && onSegment(a, c, b)) return true
+  if (o2 === 0 && onSegment(a, d, b)) return true
+  if (o3 === 0 && onSegment(c, a, d)) return true
+  if (o4 === 0 && onSegment(c, b, d)) return true
+  return false
 }
 
-function isNearPortalOpening(point, wall, portals, radius = GRID * 1.15) {
+function segmentIntersectionPoint(a, b, wall) {
+  const c = { x: wall.x1, y: wall.y1 }
+  const d = { x: wall.x2, y: wall.y2 }
+  const den = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x)
+
+  if (Math.abs(den) < 0.001) {
+    const points = [a, b, c, d].filter(point =>
+      pointToSegmentDistance(point, wall) < 1 &&
+      pointToSegmentDistance(point, { x1: a.x, y1: a.y, x2: b.x, y2: b.y }) < 1
+    )
+    return points[0] ?? null
+  }
+
+  return {
+    x: ((a.x * b.y - a.y * b.x) * (c.x - d.x) - (a.x - b.x) * (c.x * d.y - c.y * d.x)) / den,
+    y: ((a.x * b.y - a.y * b.x) * (c.y - d.y) - (a.y - b.y) * (c.x * d.y - c.y * d.x)) / den,
+  }
+}
+
+function isNearPortalOpening(point, wall, portals, radius = GRID * 0.85) {
   return portals.some(portal =>
     Math.hypot(point.x - portal.x, point.y - portal.y) <= radius &&
     pointToSegmentDistance(portal, wall) <= GRID * 0.2
@@ -97,11 +151,10 @@ function isNearPortalOpening(point, wall, portals, radius = GRID * 1.15) {
 }
 
 function segmentTouchesWall(a, b, wall, portals = []) {
-  const touchesEndpoint =
-    (pointToSegmentDistance(a, wall) < 2 && isNearPortalOpening(a, wall, portals)) ||
-    (pointToSegmentDistance(b, wall) < 2 && isNearPortalOpening(b, wall, portals))
-
-  if (segmentsIntersect(a, b, wall) && !touchesEndpoint) return true
+  if (segmentsIntersect(a, b, wall)) {
+    const point = segmentIntersectionPoint(a, b, wall)
+    if (!point || !isNearPortalOpening(point, wall, portals)) return true
+  }
 
   const samples = 6
   for (let i = 1; i < samples; i++) {
@@ -169,29 +222,46 @@ function polylineLength(points) {
   return length
 }
 
+function isAxisAligned(a, b) {
+  return Math.abs(a.x - b.x) < 1 || Math.abs(a.y - b.y) < 1
+}
+
+function chooseOrthogonalCorner(a, b, walls, portals) {
+  if (isAxisAligned(a, b)) return null
+
+  const corners = [
+    { x: b.x, y: a.y },
+    { x: a.x, y: b.y },
+  ]
+
+  return corners
+    .filter(corner =>
+      hasClearLine(a, corner, walls, GRID * 0.45, portals) &&
+      hasClearLine(corner, b, walls, GRID * 0.45, portals)
+    )
+    .sort((left, right) => wallPenalty(left, walls) - wallPenalty(right, walls))[0] ?? null
+}
+
+function orthogonalizePath(points, walls, portals = []) {
+  if (points.length <= 1) return points
+
+  const result = [points[0]]
+  for (let i = 0; i < points.length - 1; i++) {
+    const from = result[result.length - 1]
+    const to = points[i + 1]
+    const corner = chooseOrthogonalCorner(from, to, walls, portals)
+    if (corner) result.push(corner)
+    result.push(to)
+  }
+
+  return simplifyPolyline(result)
+}
+
 function cellCenter(cell) {
   return {
     x: cell.col * GRID + GRID / 2,
     y: cell.row * GRID + GRID / 2,
   }
-}
-
-function smoothCellPath(points, walls, portals = []) {
-  if (points.length <= 2) return points
-
-  const smoothed = [points[0]]
-  let current = 0
-
-  while (current < points.length - 1) {
-    let next = points.length - 1
-    while (next > current + 1 && !hasClearLine(points[current], points[next], walls, GRID * 0.55, portals)) {
-      next--
-    }
-    smoothed.push(points[next])
-    current = next
-  }
-
-  return smoothed
 }
 
 function buildRoomPath(room, from, to, walls = []) {
@@ -206,16 +276,16 @@ function buildRoomPath(room, from, to, walls = []) {
   const portals = [{ x: from.x, y: from.y }, { x: to.x, y: to.y }]
 
   if (hasClearLine(from, to, walls, GRID * 0.45, portals)) {
-    return [{ x: from.x, y: from.y }, { x: to.x, y: to.y }]
+    return orthogonalizePath([{ x: from.x, y: from.y }, { x: to.x, y: to.y }], walls, portals)
   }
 
   if (hasClearLine(startPoint, finishPoint, walls, GRID * 0.45, portals)) {
-    return simplifyPolyline(smoothCellPath([
+    return orthogonalizePath([
       { x: from.x, y: from.y },
       startPoint,
       finishPoint,
       { x: to.x, y: to.y },
-    ], walls, portals))
+    ], walls, portals)
   }
 
   const allowed = new Set(room.cells.map(([row, col]) => `${row},${col}`))
@@ -227,10 +297,6 @@ function buildRoomPath(room, from, to, walls = []) {
     { row: 1, col: 0 },
     { row: 0, col: -1 },
     { row: 0, col: 1 },
-    { row: -1, col: -1 },
-    { row: -1, col: 1 },
-    { row: 1, col: -1 },
-    { row: 1, col: 1 },
   ]
 
   while (open.length > 0) {
@@ -274,7 +340,7 @@ function buildRoomPath(room, from, to, walls = []) {
     { x: to.x, y: to.y },
   ]
 
-  return simplifyPolyline(smoothCellPath(points, walls, portals))
+  return orthogonalizePath(points, walls, portals)
 }
 
 // ── Генерація графа ──────────────────────────────────────────
@@ -358,6 +424,32 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
   //    з'єднуємо їх між собою напряму.
   //    Маршрут "транзитом" через кімнату піде door→door,
   //    без заходу в центроїд.
+  stairs.forEach(stair => {
+    const stairNode = {
+      id: uid++,
+      x: stair.x,
+      y: stair.y,
+      isExit: false,
+      isStair: true,
+    }
+    nodes.push(stairNode)
+
+    const roomAtStair = getRoomContainingPoint(stair, detectedRooms)
+    const adjacent = roomAtStair ? [roomAtStair] : getAdjacentRooms(stair, detectedRooms)
+    adjacent.forEach(room => {
+      if (!roomDoorNodes.has(room.id)) roomDoorNodes.set(room.id, [])
+      roomDoorNodes.get(room.id).push(stairNode)
+
+      const roomNode = roomNodeMap.get(room.id)
+      if (roomNode) addEdge(roomNode.id, stairNode.id, room.id)
+    })
+
+    if (adjacent.length === 0) {
+      const nearest = nearestNode([...roomNodeMap.values()], stairNode.x, stairNode.y, 300)
+      if (nearest) addEdge(nearest.id, stairNode.id, nearest.roomId)
+    }
+  })
+
   roomDoorNodes.forEach((doorNodes, roomId) => {
     for (let i = 0; i < doorNodes.length; i++) {
       for (let j = i + 1; j < doorNodes.length; j++) {
@@ -404,22 +496,8 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
     }
   })
 
-  // ── 5. Сходи ──────────────────────────────────────────────
-  stairs.forEach(stair => {
-    const stairNode = {
-      id: uid++,
-      x: stair.x,
-      y: stair.y,
-      isExit: false,
-      isStair: true,
-    }
-    nodes.push(stairNode)
-    const nearest = nearestNode([...roomNodeMap.values()], stairNode.x, stairNode.y, 300)
-    if (nearest) addEdge(nearest.id, stairNode.id, nearest.roomId)
-  })
-
   // ── 6. Зв'язність: висячі транзитні вузли ────────────────
-  const allTransitNodes = nodes.filter(n => n.isDoor || n.isExit)
+  const allTransitNodes = nodes.filter(n => n.isDoor || n.isExit || n.isStair)
 
   function getEdgeCount(nodeId) {
     return edges.filter(e => e.from === nodeId || e.to === nodeId).length
