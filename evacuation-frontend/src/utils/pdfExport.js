@@ -4,8 +4,7 @@ import { computeSafetyAnalysis } from './evacAnalysis'
 const GRID = 20
 const METER = 0.5
 const MULTI_COLORS = [
-  '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899',
-  '#06b6d4', '#84cc16', '#f97316', '#14b8a6',
+  '#2563eb', '#0f766e', '#b45309', '#7c3aed', '#be123c',
 ]
 
 const REC_STYLES = {
@@ -96,15 +95,24 @@ function dedupeSegments(segments, seenSegments) {
   return result
 }
 
+function withAlpha(color, alphaHex = 'cc') {
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) return `${color}${alphaHex}`
+  if (/^#[0-9a-fA-F]{8}$/.test(color)) return `${color.slice(0, 7)}${alphaHex}`
+  return color
+}
+
 function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   if (!fullPath || fullPath.length < 2) return
   const {
     color = '#009944',
     lineWidth = 3,
-    arrowSize = 9,
-    arrowStep = 70,
-    minArrowSegment = 28,
+    arrowSize = 7.5,
+    arrowStep = 96,
+    minArrowSegment = 42,
     dashed = true,
+    alpha = 'd9',
+    halo = true,
+    showStartDot = true,
     edges = [],
     seenSegments = null,
   } = opts
@@ -134,6 +142,17 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   function cleanupRoutePoints(points) {
     if (points.length <= 2) return points
 
+    function pointLineDistance(point, a, b) {
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const len2 = dx * dx + dy * dy
+      if (len2 < 1) return Math.hypot(point.x - a.x, point.y - a.y)
+      const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / len2))
+      const x = a.x + dx * t
+      const y = a.y + dy * t
+      return Math.hypot(point.x - x, point.y - y)
+    }
+
     const cleaned = [points[0]]
     for (let i = 1; i < points.length - 1; i++) {
       const prev = cleaned[cleaned.length - 1]
@@ -143,9 +162,13 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
       const nextDist = Math.hypot(next.x - current.x, next.y - current.y)
       const sameVertical = Math.abs(prev.x - current.x) < 1 && Math.abs(current.x - next.x) < 1
       const sameHorizontal = Math.abs(prev.y - current.y) < 1 && Math.abs(current.y - next.y) < 1
+      const almostStraight = pointLineDistance(current, prev, next) < GRID * 0.28
+      const smallHook = prevDist + nextDist < GRID * 2.2
 
-      if (prevDist < GRID * 0.45 || nextDist < GRID * 0.25) continue
+      if (prevDist < GRID * 0.65 || nextDist < GRID * 0.45) continue
       if (sameVertical || sameHorizontal) continue
+      if (almostStraight) continue
+      if (smallHook) continue
       cleaned.push(current)
     }
     cleaned.push(points[points.length - 1])
@@ -153,13 +176,37 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     return cleaned
   }
 
+  function removePortalHooks(points, startNode, endNode) {
+    const result = [...points]
+    const startIsPortal = startNode.isDoor || startNode.isExit
+    const endIsPortal = endNode.isDoor || endNode.isExit
+
+    while (
+      startIsPortal &&
+      result.length > 2 &&
+      Math.hypot(result[1].x - startNode.x, result[1].y - startNode.y) < GRID * 1.35
+    ) {
+      result.splice(1, 1)
+    }
+
+    while (
+      endIsPortal &&
+      result.length > 2 &&
+      Math.hypot(result[result.length - 2].x - endNode.x, result[result.length - 2].y - endNode.y) < GRID * 1.35
+    ) {
+      result.splice(result.length - 2, 1)
+    }
+
+    return result
+  }
+
   function edgePoints(a, b) {
     const edge = findEdge(a, b)
     if (!edge?.points?.length) {
-      return cleanupRoutePoints([
+      return cleanupRoutePoints(removePortalHooks([
         (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
         (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
-      ])
+      ], a, b))
     }
 
     const points = edge.from === a.id
@@ -173,7 +220,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
         : { x: b.x, y: b.y }
     }
 
-    return cleanupRoutePoints(points)
+    return cleanupRoutePoints(removePortalHooks(points, a, b))
   }
 
   const segments = []
@@ -187,17 +234,25 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
   const drawableSegments = seenSegments ? dedupeSegments(segments, seenSegments) : segments
 
-  ctx.strokeStyle = color; ctx.lineWidth = lineWidth * invScale
-  ctx.setLineDash(dashed ? [14 * invScale, 9 * invScale] : [])
-  ctx.lineDashOffset = 0
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-  drawableSegments.forEach(seg => {
-    if (Math.hypot(seg.to.x - seg.from.x, seg.to.y - seg.from.y) < 1) return
-    ctx.beginPath()
-    ctx.moveTo(seg.from.x, seg.from.y)
-    ctx.lineTo(seg.to.x, seg.to.y)
-    ctx.stroke()
-  })
+  const dash = dashed ? [16 * invScale, 12 * invScale] : []
+  function strokeSegments(style, width) {
+    ctx.strokeStyle = style
+    ctx.lineWidth = width * invScale
+    ctx.setLineDash(dash)
+    ctx.lineDashOffset = 0
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    drawableSegments.forEach(seg => {
+      if (Math.hypot(seg.to.x - seg.from.x, seg.to.y - seg.from.y) < 1) return
+      ctx.beginPath()
+      ctx.moveTo(seg.from.x, seg.from.y)
+      ctx.lineTo(seg.to.x, seg.to.y)
+      ctx.stroke()
+    })
+  }
+
+  if (halo) strokeSegments('rgba(255,255,255,0.86)', lineWidth + 3.2)
+  strokeSegments(withAlpha(color, alpha), lineWidth)
   ctx.setLineDash([])
 
   const AS = arrowSize * invScale, STEP = arrowStep * invScale
@@ -212,7 +267,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
       const t = (nextArrow - walked) / segLen
       const ax = seg.from.x + dx * t, ay = seg.from.y + dy * t
       ctx.save(); ctx.translate(ax, ay); ctx.rotate(angle)
-      ctx.fillStyle = color; ctx.beginPath()
+      ctx.fillStyle = withAlpha(color, 'e6'); ctx.beginPath()
       ctx.moveTo(AS, 0); ctx.lineTo(-AS*0.5, -AS*0.6); ctx.lineTo(-AS*0.5, AS*0.6)
       ctx.closePath(); ctx.fill(); ctx.restore()
       nextArrow += STEP
@@ -230,8 +285,10 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     ctx.fillText('▲', last.x, last.y - 0.5 * invScale)
   }
 
-  ctx.fillStyle = color; ctx.beginPath()
-  ctx.arc(path[0].x, path[0].y, 4 * invScale, 0, Math.PI * 2); ctx.fill()
+  if (showStartDot) {
+    ctx.fillStyle = color; ctx.beginPath()
+    ctx.arc(path[0].x, path[0].y, 4 * invScale, 0, Math.PI * 2); ctx.fill()
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -264,16 +321,36 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
       ? (multiFloorPath.find(s => s.floorId === currentFloorId)?.path ?? null)
       : currentPath
     if (evacuationView === 'single' && activePath && activePath.length > 1)
-      drawEvacPath(ctx, activePath, invScale, { color: '#009944', edges: graphEdges })
+      drawEvacPath(ctx, activePath, invScale, { color: '#009944', lineWidth: 2.6, arrowStep: 105, edges: graphEdges })
     if (evacuationView === 'all' && allPaths && allPaths.length > 0) {
       const seenSegments = new Set()
-      allPaths.forEach((path, i) => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length], edges: graphEdges, seenSegments }) })
+      allPaths.forEach((path, i) => {
+        if (path && path.length > 1) drawEvacPath(ctx, path, invScale, {
+          color: MULTI_COLORS[i % MULTI_COLORS.length],
+          lineWidth: 2,
+          arrowSize: 7,
+          arrowStep: 120,
+          alpha: 'b8',
+          halo: false,
+          edges: graphEdges,
+          seenSegments,
+        })
+      })
     }
     if (evacuationView === 'multi' && multiRoomPaths) {
       const seenSegments = new Set()
       Object.values(multiRoomPaths).forEach(entry => {
         if (entry?.path && entry.path.length > 1) {
-          drawEvacPath(ctx, entry.path, invScale, { color: entry.color || '#009944', edges: graphEdges, seenSegments })
+          drawEvacPath(ctx, entry.path, invScale, {
+            color: entry.color || '#009944',
+            lineWidth: 2,
+            arrowSize: 7,
+            arrowStep: 116,
+            alpha: 'bf',
+            halo: false,
+            edges: graphEdges,
+            seenSegments,
+          })
         }
       })
     }
@@ -376,9 +453,9 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
 
   // ── Підписи кімнат ───────────────────────────────────────
   detectedRooms.forEach(room => {
-    const fontSize = Math.max(10, 11 * invScale)
+    const fontSize = Math.max(9, 10 * invScale)
     ctx.font = `${fontSize}px Arial, sans-serif`
-    ctx.fillStyle = '#374151'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = 'rgba(55,65,81,0.78)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(room.label, room.cx, room.cy)
   })
 
