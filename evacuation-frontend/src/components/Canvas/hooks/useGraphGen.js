@@ -10,6 +10,18 @@ function findRoomAtCell(detectedRooms, col, row) {
   ) ?? null
 }
 
+function roomsAtPoint(detectedRooms, point) {
+  const candidates = [
+    { col: Math.floor(point.x / GRID), row: Math.floor(point.y / GRID) },
+    { col: Math.round(point.x / GRID), row: Math.round(point.y / GRID) },
+    { col: Math.ceil(point.x / GRID), row: Math.ceil(point.y / GRID) },
+  ]
+
+  return candidates
+    .map(candidate => findRoomAtCell(detectedRooms, candidate.col, candidate.row))
+    .filter(Boolean)
+}
+
 // ── Два сусідні регіони по обидва боки від двері/виходу ─────
 function getWallAngle(item) {
   if (Number.isFinite(item.angle)) return item.angle
@@ -20,18 +32,22 @@ function getAdjacentRooms(item, detectedRooms) {
   const angle = getWallAngle(item)
   const normalX = -Math.sin(angle)
   const normalY = Math.cos(angle)
-  const sampleDist = GRID * 0.75
+  const tangentX = Math.cos(angle)
+  const tangentY = Math.sin(angle)
+  const samples = []
 
-  const samples = [
-    { x: item.x + normalX * sampleDist, y: item.y + normalY * sampleDist },
-    { x: item.x - normalX * sampleDist, y: item.y - normalY * sampleDist },
-  ]
+  ;[-1, 1].forEach(side => {
+    ;[0.65, 1.05, 1.45].forEach(distMul => {
+      ;[-0.35, 0, 0.35].forEach(tangentMul => {
+        samples.push({
+          x: item.x + normalX * GRID * distMul * side + tangentX * GRID * tangentMul,
+          y: item.y + normalY * GRID * distMul * side + tangentY * GRID * tangentMul,
+        })
+      })
+    })
+  })
 
-  const rooms = samples.map(point => {
-    const col = Math.round(point.x / GRID)
-    const row = Math.round(point.y / GRID)
-    return findRoomAtCell(detectedRooms, col, row)
-  }).filter(Boolean)
+  const rooms = samples.flatMap(point => roomsAtPoint(detectedRooms, point))
 
   return [...new Map(rooms.map(room => [room.id, room])).values()]
 }

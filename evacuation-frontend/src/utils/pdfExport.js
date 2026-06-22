@@ -40,6 +40,62 @@ function drawFloorChangeBadge(ctx, node, invScale) {
   ctx.fillText(text, x, y)
 }
 
+function segmentChunkKey(a, b) {
+  const mx = (a.x + b.x) / 2
+  const my = (a.y + b.y) / 2
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const axis = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'
+  const line = axis === 'h' ? Math.round(my / 8) * 8 : Math.round(mx / 8) * 8
+  const pos = axis === 'h' ? Math.round(mx / 8) * 8 : Math.round(my / 8) * 8
+  return `${axis}:${line}:${pos}`
+}
+
+function dedupeSegments(segments, seenSegments) {
+  if (!seenSegments) return segments
+
+  const result = []
+  segments.forEach(seg => {
+    const dx = seg.to.x - seg.from.x
+    const dy = seg.to.y - seg.from.y
+    const len = Math.hypot(dx, dy)
+    if (len < 1) return
+
+    const steps = Math.max(1, Math.ceil(len / 10))
+    let openStart = null
+    let lastPoint = seg.from
+
+    for (let i = 0; i < steps; i++) {
+      const fromT = i / steps
+      const toT = (i + 1) / steps
+      const from = {
+        x: seg.from.x + dx * fromT,
+        y: seg.from.y + dy * fromT,
+      }
+      const to = {
+        x: seg.from.x + dx * toT,
+        y: seg.from.y + dy * toT,
+      }
+      const key = segmentChunkKey(from, to)
+
+      if (seenSegments.has(key)) {
+        if (openStart) {
+          result.push({ from: openStart, to: from })
+          openStart = null
+        }
+      } else {
+        seenSegments.add(key)
+        if (!openStart) openStart = from
+      }
+      lastPoint = to
+    }
+
+    if (openStart) result.push({ from: openStart, to: lastPoint })
+  })
+
+  return result
+}
+
 function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   if (!fullPath || fullPath.length < 2) return
   const {
@@ -49,6 +105,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     arrowStep = 70,
     minArrowSegment = 28,
     edges = [],
+    seenSegments = null,
   } = opts
 
   const floorChangeIdx = fullPath.findIndex(n => n.isFloorChange)
@@ -105,9 +162,11 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     }
   }
 
+  const drawableSegments = seenSegments ? dedupeSegments(segments, seenSegments) : segments
+
   ctx.strokeStyle = color; ctx.lineWidth = lineWidth * invScale
   ctx.setLineDash([]); ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-  segments.forEach(seg => {
+  drawableSegments.forEach(seg => {
     if (Math.hypot(seg.to.x - seg.from.x, seg.to.y - seg.from.y) < 1) return
     ctx.beginPath()
     ctx.moveTo(seg.from.x, seg.from.y)
@@ -117,7 +176,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
   const AS = arrowSize * invScale, STEP = arrowStep * invScale
   let nextArrow = STEP * 0.5, walked = 0
-  segments.forEach(seg => {
+  drawableSegments.forEach(seg => {
     const dx = seg.to.x - seg.from.x
     const dy = seg.to.y - seg.from.y
     const segLen = Math.hypot(dx, dy)
@@ -180,12 +239,15 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
       : currentPath
     if (evacuationView === 'single' && activePath && activePath.length > 1)
       drawEvacPath(ctx, activePath, invScale, { color: '#009944', edges: graphEdges })
-    if (evacuationView === 'all' && allPaths && allPaths.length > 0)
-      allPaths.forEach((path, i) => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length], edges: graphEdges }) })
+    if (evacuationView === 'all' && allPaths && allPaths.length > 0) {
+      const seenSegments = new Set()
+      allPaths.forEach((path, i) => { if (path && path.length > 1) drawEvacPath(ctx, path, invScale, { color: MULTI_COLORS[i % MULTI_COLORS.length], edges: graphEdges, seenSegments }) })
+    }
     if (evacuationView === 'multi' && multiRoomPaths) {
+      const seenSegments = new Set()
       Object.values(multiRoomPaths).forEach(entry => {
         if (entry?.path && entry.path.length > 1) {
-          drawEvacPath(ctx, entry.path, invScale, { color: entry.color || '#009944', edges: graphEdges })
+          drawEvacPath(ctx, entry.path, invScale, { color: entry.color || '#009944', edges: graphEdges, seenSegments })
         }
       })
     }
