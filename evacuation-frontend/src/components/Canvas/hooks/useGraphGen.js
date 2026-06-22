@@ -213,12 +213,22 @@ function wallPenalty(point, walls) {
 
 function simplifyPolyline(points) {
   if (points.length <= 2) return points
-  const simplified = [points[0]]
+  const withoutTinySteps = [points[0]]
 
-  for (let i = 1; i < points.length - 1; i++) {
-    const prev = simplified[simplified.length - 1]
+  for (let i = 1; i < points.length; i++) {
+    const prev = withoutTinySteps[withoutTinySteps.length - 1]
     const current = points[i]
-    const next = points[i + 1]
+    if (Math.hypot(current.x - prev.x, current.y - prev.y) >= GRID * 0.35 || i === points.length - 1) {
+      withoutTinySteps.push(current)
+    }
+  }
+
+  const simplified = [withoutTinySteps[0]]
+
+  for (let i = 1; i < withoutTinySteps.length - 1; i++) {
+    const prev = simplified[simplified.length - 1]
+    const current = withoutTinySteps[i]
+    const next = withoutTinySteps[i + 1]
     const dx1 = Math.sign(current.x - prev.x)
     const dy1 = Math.sign(current.y - prev.y)
     const dx2 = Math.sign(next.x - current.x)
@@ -226,7 +236,7 @@ function simplifyPolyline(points) {
     if (dx1 !== dx2 || dy1 !== dy2) simplified.push(current)
   }
 
-  simplified.push(points[points.length - 1])
+  simplified.push(withoutTinySteps[withoutTinySteps.length - 1])
   return simplified
 }
 
@@ -381,12 +391,16 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
   function addEdge(fromId, toId, roomId = null) {
     const key = `${Math.min(fromId, toId)}-${Math.max(fromId, toId)}`
     if (edgeSet.has(key)) return
-    edgeSet.add(key)
     const a = nodes.find(n => n.id === fromId)
     const b = nodes.find(n => n.id === toId)
     if (!a || !b) return
     const room = roomId ? detectedRooms.find(r => r.id === roomId) : null
     const points = room ? buildRoomPath(room, a, b, walls) : null
+
+    if (room && (!points || points.length < 2)) return
+    if (!room && !hasClearLine(a, b, walls, GRID * 0.45, [...doors, ...exits, ...stairs])) return
+
+    edgeSet.add(key)
     const length = points?.length > 1 ? polylineLength(points) : Math.hypot(b.x - a.x, b.y - a.y)
     edges.push({ id: uid++, from: fromId, to: toId, length, points: points ?? null })
   }

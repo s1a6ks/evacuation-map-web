@@ -62,6 +62,17 @@ function findRoomAtPixel(detectedRooms, px, py) {
   ) ?? null
 }
 
+function isPointInStair(stair, px, py, padding = 8) {
+  const angle = -(stair.angle ?? 0)
+  const dx = px - stair.x
+  const dy = py - stair.y
+  const localX = dx * Math.cos(angle) - dy * Math.sin(angle)
+  const localY = dx * Math.sin(angle) + dy * Math.cos(angle)
+  const halfW = (stair.width ?? GRID * 0.9) / 2 + padding
+  const halfH = (stair.height ?? GRID * 1.6) / 2 + padding
+  return Math.abs(localX) <= halfW && Math.abs(localY) <= halfH
+}
+
 export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
   const {
     tool, walls, doors, exits, stairs, detectedRooms,
@@ -93,10 +104,10 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
     const y = snap(rawY)
 
     if (tool === 'select') {
-      const CLICK_R = 20
       const clickedStair = stairs.reduce((best, s, i) => {
+        if (!isPointInStair(s, rawX, rawY)) return best
         const d = Math.hypot(s.x - rawX, s.y - rawY)
-        if (d < CLICK_R && (!best || d < best.d)) return { idx: i, d, x: s.x, y: s.y }
+        if (!best || d < best.d) return { idx: i, d, x: s.x, y: s.y }
         return best
       }, null)
 
@@ -149,16 +160,16 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
 
     if (tool === 'stair') {
       pushHistory()
-      addStair({ x, y })
+      addStair({ x, y, width: GRID * 0.9, height: GRID * 1.6, angle: 0, direction: 'up' })
     }
 
 
     // ── Клік на сходи (будь-який інструмент крім erase) — виділяємо ──
     if (tool !== 'erase' && tool !== 'wall') {
-      const CLICK_R = 20
       const clickedStair = stairs.reduce((best, s, i) => {
+        if (!isPointInStair(s, x, y)) return best
         const d = Math.hypot(s.x - x, s.y - y)
-        if (d < CLICK_R && (!best || d < best.d)) return { idx: i, d, x: s.x, y: s.y }
+        if (!best || d < best.d) return { idx: i, d, x: s.x, y: s.y }
         return best
       }, null)
       if (clickedStair && tool !== 'door' && tool !== 'exit' && tool !== 'stair') {
@@ -193,8 +204,9 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
 
       // Сходи (точки)
       stairs.forEach((s, i) => {
+        if (!isPointInStair(s, x, y)) return
         const dist = Math.hypot(s.x - x, s.y - y)
-        if (dist < ERASE_RADIUS) candidates.push({ type: 'stair', index: i, dist })
+        candidates.push({ type: 'stair', index: i, dist })
       })
 
 

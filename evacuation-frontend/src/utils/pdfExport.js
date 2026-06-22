@@ -104,6 +104,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     arrowSize = 9,
     arrowStep = 70,
     minArrowSegment = 28,
+    dashed = true,
     edges = [],
     seenSegments = null,
   } = opts
@@ -130,13 +131,35 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     )
   }
 
+  function cleanupRoutePoints(points) {
+    if (points.length <= 2) return points
+
+    const cleaned = [points[0]]
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = cleaned[cleaned.length - 1]
+      const current = points[i]
+      const next = points[i + 1]
+      const prevDist = Math.hypot(current.x - prev.x, current.y - prev.y)
+      const nextDist = Math.hypot(next.x - current.x, next.y - current.y)
+      const sameVertical = Math.abs(prev.x - current.x) < 1 && Math.abs(current.x - next.x) < 1
+      const sameHorizontal = Math.abs(prev.y - current.y) < 1 && Math.abs(current.y - next.y) < 1
+
+      if (prevDist < GRID * 0.45 || nextDist < GRID * 0.25) continue
+      if (sameVertical || sameHorizontal) continue
+      cleaned.push(current)
+    }
+    cleaned.push(points[points.length - 1])
+
+    return cleaned
+  }
+
   function edgePoints(a, b) {
     const edge = findEdge(a, b)
     if (!edge?.points?.length) {
-      return [
+      return cleanupRoutePoints([
         (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
         (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
-      ]
+      ])
     }
 
     const points = edge.from === a.id
@@ -150,7 +173,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
         : { x: b.x, y: b.y }
     }
 
-    return points
+    return cleanupRoutePoints(points)
   }
 
   const segments = []
@@ -165,7 +188,9 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   const drawableSegments = seenSegments ? dedupeSegments(segments, seenSegments) : segments
 
   ctx.strokeStyle = color; ctx.lineWidth = lineWidth * invScale
-  ctx.setLineDash([]); ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  ctx.setLineDash(dashed ? [14 * invScale, 9 * invScale] : [])
+  ctx.lineDashOffset = 0
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'
   drawableSegments.forEach(seg => {
     if (Math.hypot(seg.to.x - seg.from.x, seg.to.y - seg.from.y) < 1) return
     ctx.beginPath()
@@ -173,6 +198,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     ctx.lineTo(seg.to.x, seg.to.y)
     ctx.stroke()
   })
+  ctx.setLineDash([])
 
   const AS = arrowSize * invScale, STEP = arrowStep * invScale
   let nextArrow = STEP * 0.5, walked = 0
@@ -308,15 +334,34 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
 
   // ── Сходи ────────────────────────────────────────────────
   stairs.forEach(stair => {
+    const w = stair.width ?? GRID * 0.9
+    const h = stair.height ?? GRID * 1.6
+    const angle = stair.angle ?? 0
+    const direction = stair.direction === 'down' ? -1 : 1
+    ctx.save()
+    ctx.translate(stair.x, stair.y)
+    ctx.rotate(angle)
     ctx.strokeStyle = '#374151'; ctx.lineWidth = 1 * invScale
-    const w = GRID * 0.8, h = GRID * 1.2
-    ctx.strokeRect(stair.x - w / 2, stair.y - h / 2, w, h)
+    ctx.strokeRect(-w / 2, -h / 2, w, h)
     for (let i = -2; i <= 2; i++) {
+      const y = i * (h / 6)
       ctx.beginPath()
-      ctx.moveTo(stair.x - w / 2 + 2 * invScale, stair.y + i * (h / 6))
-      ctx.lineTo(stair.x + w / 2 - 2 * invScale, stair.y + i * (h / 6))
+      ctx.moveTo(-w / 2 + 2 * invScale, y)
+      ctx.lineTo(w / 2 - 2 * invScale, y)
       ctx.stroke()
     }
+    ctx.fillStyle = '#374151'
+    ctx.beginPath()
+    ctx.moveTo(0, direction * (-h / 2 + 5 * invScale))
+    ctx.lineTo(0, direction * (h / 2 - 7 * invScale))
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(0, direction * (h / 2 - 5 * invScale))
+    ctx.lineTo(-4 * invScale, direction * (h / 2 - 12 * invScale))
+    ctx.lineTo(4 * invScale, direction * (h / 2 - 12 * invScale))
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
   })
 
   // ── Вогнегасники ─────────────────────────────────────────
@@ -352,7 +397,14 @@ function buildFloorCanvas(floorData, evacData) {
     ...walls.flatMap(w => [{ x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 }]),
     ...doors.map(d => ({ x: d.x, y: d.y })),
     ...exits.map(e => ({ x: e.x, y: e.y })),
-    ...stairs.map(s => ({ x: s.x, y: s.y })),
+    ...stairs.flatMap(s => {
+      const halfW = (s.width ?? GRID * 0.9) / 2
+      const halfH = (s.height ?? GRID * 1.6) / 2
+      return [
+        { x: s.x - halfW, y: s.y - halfH },
+        { x: s.x + halfW, y: s.y + halfH },
+      ]
+    }),
     ...extinguishers.map(e => ({ x: e.x, y: e.y })),
   ]
 

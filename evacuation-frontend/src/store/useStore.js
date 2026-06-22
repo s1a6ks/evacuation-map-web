@@ -137,6 +137,9 @@ const useStore = create((set) => ({
     exits: s.exits.map((e, i) => i === idx ? { ...e, label } : e),
   })),
   addStair: (stair) => set(s => ({ stairs: [...s.stairs, stair] })),
+  updateStair: (idx, patch) => set(s => ({
+    stairs: s.stairs.map((stair, i) => i === idx ? { ...stair, ...patch } : stair),
+  })),
 
   removeWall: (idx) => set(s => ({ walls: s.walls.filter((_, i) => i !== idx) })),
   removeDoor: (idx) => set(s => ({ doors: s.doors.filter((_, i) => i !== idx) })),

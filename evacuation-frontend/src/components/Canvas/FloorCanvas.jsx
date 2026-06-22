@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import useStore from '../../store/useStore'
-import useDrawing from './hooks/useDrawing'
+import useDrawing, { snap } from './hooks/useDrawing'
 import useRender from './hooks/useRender'
 import useFloodFill from './hooks/useFloodFill'
 import useGraphGen from './hooks/useGraphGen'
@@ -8,14 +8,26 @@ import useEvacuation from './hooks/useEvacuation'
 
 export default function FloorCanvas() {
   const canvasRef = useRef(null)
-  const { mode, tool, scale, offset, setTransform, floors, currentFloorId, addFloor, switchFloor, removeFloor, renameFloor, setSelectedStairInfo } = useStore()
+  const {
+    mode, tool, scale, offset, setTransform,
+    floors, currentFloorId, addFloor, switchFloor, removeFloor, renameFloor,
+    stairs, selectedStairInfo, setSelectedStairInfo, updateStair, pushHistory,
+  } = useStore()
   const isPanning  = useRef(false)
   const hasPanned  = useRef(false)
+  const isResizingStair = useRef(false)
+  const isDraggingStair = useRef(false)
   const panStart   = useRef({ x: 0, y: 0 })
   const mouseStart = useRef({ x: 0, y: 0 })
+  const resizingStairIdx = useRef(null)
+  const draggingStairIdx = useRef(null)
+  const stairDragOffset = useRef({ x: 0, y: 0 })
+  const resizingStairPreview = useRef(null)
+  const resizeFrame = useRef(null)
 
   const [editingFloor, setEditingFloor]     = useState(null)
   const [floorNameInput, setFloorNameInput] = useState('')
+  const [stairPreview, setStairPreview] = useState(null)
 
   const { drawing, drawStart, mousePos, handleMouseMove, handleClick, handleDoubleClick } = useDrawing(scale, offset)
   const { render } = useRender(canvasRef)
@@ -62,18 +74,162 @@ export default function FloorCanvas() {
   }, [handleWheel])
 
   useEffect(() => {
-    render(drawing, drawStart, mousePos, scale, offset)
-  }, [drawing, drawStart, mousePos, render, scale, offset])
+    render(drawing, drawStart, mousePos, scale, offset, stairPreview)
+  }, [drawing, drawStart, mousePos, render, scale, offset, stairPreview])
 
   // ── Pan ─────────────────────────────────────────────────
-  const handleMouseDown = useCallback((e) => {
+  function toCanvasPoint(e) {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: (e.clientX - rect.left - offset.x) / scale,
+      y: (e.clientY - rect.top - offset.y) / scale,
+    }
+  }
+
+  function stairControlPoints(stair) {
+    const w = stair.width ?? 18
+    const h = stair.height ?? 32
+    const angle = stair.angle ?? 0
+
+    function fromLocal(localX, localY) {
+      return {
+        x: stair.x + localX * Math.cos(angle) - localY * Math.sin(angle),
+        y: stair.y + localX * Math.sin(angle) + localY * Math.cos(angle),
+      }
+    }
+
+    return {
+      resize: fromLocal(w / 2 + 10 / scale, h / 2 + 10 / scale),
+      rotate: fromLocal(w / 2 + 10 / scale, -h / 2 - 10 / scale),
+    }
+  }
+
+  function isPointInStair(stair, point, padding = 8 / scale) {
+    const angle = -(stair.angle ?? 0)
+    const dx = point.x - stair.x
+    const dy = point.y - stair.y
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle)
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle)
+    const halfW = (stair.width ?? 18) / 2 + padding
+    const halfH = (stair.height ?? 32) / 2 + padding
+    return Math.abs(localX) <= halfW && Math.abs(localY) <= halfH
+  }
+
+  function findStairAtPoint(point) {
+    if (mode !== 'constructor' || tool !== 'select') return null
+    return stairs.reduce((best, stair, idx) => {
+      if (!isPointInStair(stair, point)) return best
+      const dist = Math.hypot(stair.x - point.x, stair.y - point.y)
+      return !best || dist < best.dist ? { idx, stair, dist } : best
+    }, null)
+  }
+
+  function findStairControl(point) {
+    if (mode !== 'constructor' || !selectedStairInfo || selectedStairInfo.floorId !== currentFloorId) return null
+    const stair = stairs[selectedStairInfo.idx]
+    if (!stair) return null
+    const controls = stairControlPoints(stair)
+    const radius = 12 / scale
+    if (Math.hypot(point.x - controls.resize.x, point.y - controls.resize.y) <= radius) {
+      return { action: 'resize', idx: selectedStairInfo.idx }
+    }
+    if (Math.hypot(point.x - controls.rotate.x, point.y - controls.rotate.y) <= radius) {
+      return { action: 'rotate', idx: selectedStairInfo.idx }
+    }
+    return null
+  }
+
+  function queueStairPreview(preview) {
+    resizingStairPreview.current = preview
+    if (resizeFrame.current) return
+    resizeFrame.current = requestAnimationFrame(() => {
+      resizeFrame.current = null
+      setStairPreview(resizingStairPreview.current)
+    })
+  }
+
+  function handleMouseDown(e) {
+    const point = toCanvasPoint(e)
+    const control = findStairControl(point)
+    if (control?.action === 'resize') {
+      pushHistory()
+      isResizingStair.current = true
+      resizingStairIdx.current = control.idx
+      hasPanned.current = true
+      return
+    }
+    if (control?.action === 'rotate') {
+      const stair = stairs[control.idx]
+      if (stair) {
+        pushHistory()
+        const nextAngle = ((stair.angle ?? 0) + Math.PI / 2) % (Math.PI * 2)
+        updateStair(control.idx, { angle: nextAngle })
+      }
+      hasPanned.current = true
+      return
+    }
+
+    const clickedStair = findStairAtPoint(point)
+    if (clickedStair) {
+      pushHistory()
+      setSelectedStairInfo({
+        floorId: currentFloorId,
+        x: clickedStair.stair.x,
+        y: clickedStair.stair.y,
+        idx: clickedStair.idx,
+      })
+      isDraggingStair.current = true
+      draggingStairIdx.current = clickedStair.idx
+      stairDragOffset.current = {
+        x: point.x - clickedStair.stair.x,
+        y: point.y - clickedStair.stair.y,
+      }
+      hasPanned.current = true
+      return
+    }
+
     isPanning.current = true
     hasPanned.current = false
     mouseStart.current = { x: e.clientX, y: e.clientY }
     panStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y }
-  }, [offset])
+  }
 
-  const handlePanMove = useCallback((e) => {
+  function handlePanMove(e) {
+    if (isResizingStair.current && resizingStairIdx.current !== null) {
+      const stair = stairs[resizingStairIdx.current]
+      if (!stair) return
+      const point = toCanvasPoint(e)
+      const angle = -(stair.angle ?? 0)
+      const dx = point.x - stair.x
+      const dy = point.y - stair.y
+      const localX = dx * Math.cos(angle) - dy * Math.sin(angle)
+      const localY = dx * Math.sin(angle) + dy * Math.cos(angle)
+      queueStairPreview({
+        type: 'stair',
+        idx: resizingStairIdx.current,
+        width: Math.max(12, Math.round(Math.abs(localX) * 2)),
+        height: Math.max(16, Math.round(Math.abs(localY) * 2)),
+      })
+      return
+    }
+
+    if (isDraggingStair.current && draggingStairIdx.current !== null) {
+      const stair = stairs[draggingStairIdx.current]
+      if (!stair) return
+      const point = toCanvasPoint(e)
+      const x = snap(point.x - stairDragOffset.current.x)
+      const y = snap(point.y - stairDragOffset.current.y)
+      queueStairPreview({
+        type: 'stair',
+        idx: draggingStairIdx.current,
+        x,
+        y,
+      })
+      return
+    }
+
     if (isPanning.current) {
       if (Math.abs(e.clientX - mouseStart.current.x) > 3 || Math.abs(e.clientY - mouseStart.current.y) > 3) {
         hasPanned.current = true
@@ -85,11 +241,35 @@ export default function FloorCanvas() {
       return
     }
     handleMouseMove(e)
-  }, [isPanning, scale, setTransform, handleMouseMove])
+  }
 
-  const handleMouseUp = useCallback(() => {
+  function handleMouseUp() {
+    if (isResizingStair.current && resizingStairIdx.current !== null && resizingStairPreview.current) {
+      updateStair(resizingStairIdx.current, {
+        width: resizingStairPreview.current.width,
+        height: resizingStairPreview.current.height,
+      })
+    }
+    if (isDraggingStair.current && draggingStairIdx.current !== null && resizingStairPreview.current) {
+      updateStair(draggingStairIdx.current, {
+        x: resizingStairPreview.current.x,
+        y: resizingStairPreview.current.y,
+      })
+      setSelectedStairInfo({
+        floorId: currentFloorId,
+        x: resizingStairPreview.current.x,
+        y: resizingStairPreview.current.y,
+        idx: draggingStairIdx.current,
+      })
+    }
     isPanning.current = false
-  }, [])
+    isResizingStair.current = false
+    isDraggingStair.current = false
+    resizingStairIdx.current = null
+    draggingStairIdx.current = null
+    resizingStairPreview.current = null
+    setStairPreview(null)
+  }
 
   function handleUnifiedClick(e) {
     if (hasPanned.current) {
@@ -120,6 +300,7 @@ export default function FloorCanvas() {
         onMouseMove={handlePanMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         onClick={handleUnifiedClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={(e) => e.preventDefault()}

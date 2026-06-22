@@ -37,6 +37,27 @@ function findElementAtPixel(elements, px, py) {
   return best  // null або індекс
 }
 
+function isPointInStair(stair, px, py, padding = 8) {
+  const angle = -(stair.angle ?? 0)
+  const dx = px - stair.x
+  const dy = py - stair.y
+  const localX = dx * Math.cos(angle) - dy * Math.sin(angle)
+  const localY = dx * Math.sin(angle) + dy * Math.cos(angle)
+  const halfW = (stair.width ?? GRID * 0.9) / 2 + padding
+  const halfH = (stair.height ?? GRID * 1.6) / 2 + padding
+  return Math.abs(localX) <= halfW && Math.abs(localY) <= halfH
+}
+
+function findStairAtPixel(stairs, px, py) {
+  let best = null, bestD = Infinity
+  stairs.forEach((stair, idx) => {
+    if (!isPointInStair(stair, px, py)) return
+    const d = Math.hypot(stair.x - px, stair.y - py)
+    if (d < bestD) { bestD = d; best = idx }
+  })
+  return best
+}
+
 function makeStairSelectionId(floorId, stairIdx) {
   return `stair:${floorId}:${stairIdx}`
 }
@@ -216,7 +237,7 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     const px = (e.clientX - rect.left - offset.x) / scale
     const py = (e.clientY - rect.top - offset.y) / scale
 
-    const stairIdx = findElementAtPixel(stairs, px, py)
+    const stairIdx = findStairAtPixel(stairs, px, py)
     if (stairIdx !== null && evacuationView === 'single') {
       const stair = stairs[stairIdx]
       const stairNode = findStairNode(stair)

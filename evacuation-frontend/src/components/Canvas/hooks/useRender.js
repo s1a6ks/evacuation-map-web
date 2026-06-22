@@ -167,6 +167,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     arrowSize = 9,
     arrowStep = 70,
     minArrowSegment = 28,
+    dashed = true,
     showStartDot = true,
     showExitMarker = true,
     edges = [],
@@ -198,13 +199,35 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     )
   }
 
+  function cleanupRoutePoints(points) {
+    if (points.length <= 2) return points
+
+    const cleaned = [points[0]]
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = cleaned[cleaned.length - 1]
+      const current = points[i]
+      const next = points[i + 1]
+      const prevDist = Math.hypot(current.x - prev.x, current.y - prev.y)
+      const nextDist = Math.hypot(next.x - current.x, next.y - current.y)
+      const sameVertical = Math.abs(prev.x - current.x) < 1 && Math.abs(current.x - next.x) < 1
+      const sameHorizontal = Math.abs(prev.y - current.y) < 1 && Math.abs(current.y - next.y) < 1
+
+      if (prevDist < GRID * 0.45 || nextDist < GRID * 0.25) continue
+      if (sameVertical || sameHorizontal) continue
+      cleaned.push(current)
+    }
+    cleaned.push(points[points.length - 1])
+
+    return cleaned
+  }
+
   function edgePoints(a, b) {
     const edge = findEdge(a, b)
     if (!edge?.points?.length) {
-      return [
+      return cleanupRoutePoints([
         (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
         (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
-      ]
+      ])
     }
 
     const points = edge.from === a.id
@@ -218,7 +241,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
         : { x: b.x, y: b.y }
     }
 
-    return points
+    return cleanupRoutePoints(points)
   }
 
   // Будуємо масив сегментів з обрізаними кінцями біля стін
@@ -235,7 +258,9 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
   // Малюємо кожен сегмент окремо (зазор біля стін — навмисний)
   ctx.strokeStyle = color; ctx.lineWidth = lineWidth * invScale
-  ctx.setLineDash([]); ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  ctx.setLineDash(dashed ? [14 * invScale, 9 * invScale] : [])
+  ctx.lineDashOffset = 0
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'
   drawableSegments.forEach(seg => {
     if (Math.hypot(seg.to.x - seg.from.x, seg.to.y - seg.from.y) < 1) return
     ctx.beginPath()
@@ -243,6 +268,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     ctx.lineTo(seg.to.x, seg.to.y)
     ctx.stroke()
   })
+  ctx.setLineDash([])
 
   // Стрілки вздовж сегментів
   const AS = arrowSize * invScale, STEP = arrowStep * invScale
@@ -294,7 +320,7 @@ export default function useRender(canvasRef) {
     multiRoomPaths, showEdgeWeights, selectedStairInfo,
   } = useStore()
 
-  const render = (drawing, drawStart, mousePos, scale = 1, offset = { x: 0, y: 0 }) => {
+  const render = (drawing, drawStart, mousePos, scale = 1, offset = { x: 0, y: 0 }, editPreview = null) => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
@@ -609,53 +635,116 @@ export default function useRender(canvasRef) {
     //  СХОДИ
     // ══════════════════════════════════════════════════════════
     stairs.forEach((stair, stairIdx) => {
+      const preview = editPreview?.type === 'stair' && editPreview.idx === stairIdx ? editPreview : null
+      const drawStair = preview ? { ...stair, ...preview } : stair
+      const w = preview?.width ?? stair.width ?? GRID * 0.9
+      const h = preview?.height ?? stair.height ?? GRID * 1.6
+      const angle = drawStair.angle ?? 0
+      const direction = drawStair.direction === 'down' ? -1 : 1
       const isSelectedStair = mode === 'constructor'
         && selectedStairInfo?.floorId === currentFloorId
-        && (selectedStairInfo.idx === stairIdx || Math.hypot(selectedStairInfo.x - stair.x, selectedStairInfo.y - stair.y) < 2)
+        && (selectedStairInfo.idx === stairIdx || Math.hypot(selectedStairInfo.x - drawStair.x, selectedStairInfo.y - drawStair.y) < 2)
+
+      ctx.save()
+      ctx.translate(drawStair.x, drawStair.y)
+      ctx.rotate(angle)
 
       if (isSelectedStair) {
-        const w = GRID * 1.35, h = GRID * 1.65
         ctx.fillStyle = 'rgba(245,158,11,0.16)'
         ctx.strokeStyle = '#f59e0b'
         ctx.lineWidth = 2 * invScale
         ctx.beginPath()
-        ctx.roundRect(stair.x - w / 2, stair.y - h / 2, w, h, 6 * invScale)
+        ctx.roundRect(-w / 2 - 4 * invScale, -h / 2 - 4 * invScale, w + 8 * invScale, h + 8 * invScale, 6 * invScale)
         ctx.fill()
         ctx.stroke()
       }
 
       if (isSimple) {
-        // Класичний архітектурний символ
         ctx.strokeStyle = '#374151'; ctx.lineWidth = 1 * invScale
-        const w = GRID * 0.8, h = GRID * 1.2
-        ctx.strokeRect(stair.x - w / 2, stair.y - h / 2, w, h)
+        ctx.strokeRect(-w / 2, -h / 2, w, h)
         for (let i = -2; i <= 2; i++) {
+          const y = i * (h / 6)
           ctx.beginPath()
-          ctx.moveTo(stair.x - w / 2 + 2 * invScale, stair.y + i * (h / 6))
-          ctx.lineTo(stair.x + w / 2 - 2 * invScale, stair.y + i * (h / 6))
+          ctx.moveTo(-w / 2 + 2 * invScale, y)
+          ctx.lineTo(w / 2 - 2 * invScale, y)
           ctx.stroke()
         }
       } else {
-        // Advanced — amber rounded box
-        const w = GRID * 0.82, h = GRID * 1.25
         ctx.fillStyle = '#fef3c7'; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5 * invScale
-        ctx.beginPath(); ctx.roundRect(stair.x - w / 2, stair.y - h / 2, w, h, 3 * invScale); ctx.fill(); ctx.stroke()
+        ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 3 * invScale); ctx.fill(); ctx.stroke()
         ctx.strokeStyle = '#d97706'; ctx.lineWidth = 1 * invScale
         for (let i = -2; i <= 2; i++) {
+          const y = i * (h / 6)
           ctx.beginPath()
-          ctx.moveTo(stair.x - w / 2 + 4 * invScale, stair.y + i * (h / 6))
-          ctx.lineTo(stair.x + w / 2 - 4 * invScale, stair.y + i * (h / 6))
+          ctx.moveTo(-w / 2 + 4 * invScale, y)
+          ctx.lineTo(w / 2 - 4 * invScale, y)
           ctx.stroke()
         }
-        ctx.fillStyle = '#92400e'; ctx.font = `bold ${8 * invScale}px sans-serif`
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText('↕', stair.x, stair.y)
       }
 
+      ctx.strokeStyle = isSimple ? '#374151' : '#92400e'
+      ctx.fillStyle = isSimple ? '#374151' : '#92400e'
+      ctx.lineWidth = 1.2 * invScale
+      ctx.beginPath()
+      ctx.moveTo(0, direction * (-h / 2 + 5 * invScale))
+      ctx.lineTo(0, direction * (h / 2 - 7 * invScale))
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(0, direction * (h / 2 - 5 * invScale))
+      ctx.lineTo(-4 * invScale, direction * (h / 2 - 12 * invScale))
+      ctx.lineTo(4 * invScale, direction * (h / 2 - 12 * invScale))
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
+
       if (isSelectedStair) {
+        ctx.save()
+        ctx.translate(drawStair.x, drawStair.y)
+        ctx.rotate(angle)
+
+        const resizeX = w / 2 + 10 * invScale
+        const resizeY = h / 2 + 10 * invScale
+        const rotateX = w / 2 + 10 * invScale
+        const rotateY = -h / 2 - 10 * invScale
+        const buttonR = 8 * invScale
+        const boxSize = 15 * invScale
+
+        ctx.fillStyle = 'rgba(255,255,255,0.96)'
+        ctx.strokeStyle = '#f59e0b'
+        ctx.lineWidth = 1.4 * invScale
+
+        ctx.beginPath()
+        ctx.roundRect(resizeX - boxSize / 2, resizeY - boxSize / 2, boxSize, boxSize, 4 * invScale)
+        ctx.fill()
+        ctx.stroke()
+        ctx.strokeStyle = '#d97706'
+        ctx.lineWidth = 1.2 * invScale
+        ctx.beginPath()
+        ctx.moveTo(resizeX - 3.5 * invScale, resizeY + 3.5 * invScale)
+        ctx.lineTo(resizeX + 3.5 * invScale, resizeY - 3.5 * invScale)
+        ctx.moveTo(resizeX + 0.5 * invScale, resizeY + 4 * invScale)
+        ctx.lineTo(resizeX + 4 * invScale, resizeY + 4 * invScale)
+        ctx.lineTo(resizeX + 4 * invScale, resizeY + 0.5 * invScale)
+        ctx.stroke()
+
+        ctx.fillStyle = 'rgba(255,255,255,0.96)'
+        ctx.strokeStyle = '#f59e0b'
+        ctx.lineWidth = 1.4 * invScale
+        ctx.beginPath()
+        ctx.arc(rotateX, rotateY, buttonR, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillStyle = '#92400e'
+        ctx.font = `700 ${11 * invScale}px Manrope, Arial, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('↻', rotateX, rotateY + 0.5 * invScale)
+
+        ctx.restore()
+
         const text = `Сходи ${stairIdx + 1}`
         const fontSize = Math.max(9, 10 * invScale)
-        const badgeY = stair.y - GRID * 1.15
+        const badgeY = drawStair.y - GRID * 1.15
         ctx.font = `600 ${fontSize}px Manrope, Arial, sans-serif`
         const bw = ctx.measureText(text).width + 12 * invScale
         const bh = 16 * invScale
@@ -663,12 +752,12 @@ export default function useRender(canvasRef) {
         ctx.strokeStyle = 'rgba(245,158,11,0.55)'
         ctx.lineWidth = 1 * invScale
         ctx.beginPath()
-        ctx.roundRect(stair.x - bw / 2, badgeY - bh / 2, bw, bh, 5 * invScale)
+        ctx.roundRect(drawStair.x - bw / 2, badgeY - bh / 2, bw, bh, 5 * invScale)
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = '#92400e'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText(text, stair.x, badgeY)
+        ctx.fillText(text, drawStair.x, badgeY)
       }
     })
 
