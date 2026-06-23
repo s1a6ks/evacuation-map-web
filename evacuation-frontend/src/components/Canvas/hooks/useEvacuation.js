@@ -140,8 +140,8 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
 
       if (setAlgorithmMetrics && (astarResult || dijkResult)) {
         setAlgorithmMetrics({
-          astar: astarResult ? { ms: astarResult.ms, visited: astarResult.visitedCount, distPx: astarResult.distPx } : null,
-          dijkstra: dijkResult ? { ms: dijkResult.ms, visited: dijkResult.visitedCount, distPx: dijkResult.distPx } : null,
+          astar: astarResult ? { ms: astarResult.ms, msValue: astarResult.msValue, visited: astarResult.visitedCount, distPx: astarResult.distPx } : null,
+          dijkstra: dijkResult ? { ms: dijkResult.ms, msValue: dijkResult.msValue, visited: dijkResult.visitedCount, distPx: dijkResult.distPx } : null,
         })
       }
 

@@ -361,13 +361,20 @@ export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true)
   }
 
   // Якщо навіть середнє менше 0.01, показуємо "<0.01", щоб не було повних нулів
-  let formattedMs = ms.toFixed(2)
-  if (formattedMs === "0.00") formattedMs = "<0.01"
+  function formatMs(value) {
+    if (value < 0.0001) return '<0.0001'
+    if (value < 1) return value.toFixed(4)
+    if (value < 10) return value.toFixed(3)
+    return value.toFixed(2)
+  }
+
+  const formattedMs = formatMs(ms)
 
   return {
     path,
     algorithm: useAstar ? 'A*' : 'Dijkstra',
     ms: formattedMs,
+    msValue: ms,
     visitedCount,
     distPx,
   }

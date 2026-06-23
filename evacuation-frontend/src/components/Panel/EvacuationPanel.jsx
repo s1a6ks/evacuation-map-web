@@ -240,7 +240,7 @@ export default function EvacuationPanel() {
           const d = algorithmMetrics.dijkstra
 
           // Визначаємо переможця по кожній метриці
-          const fasterIs = a && d ? (parseFloat(a.ms) <= parseFloat(d.ms) ? 'astar' : 'dijkstra') : null
+          const fasterIs = a && d ? ((a.msValue ?? parseFloat(a.ms)) <= (d.msValue ?? parseFloat(d.ms)) ? 'astar' : 'dijkstra') : null
           const fewerIs = a && d ? (a.visited <= d.visited ? 'astar' : 'dijkstra') : null
           const shorterIs = a && d ? (a.distPx <= d.distPx ? 'astar' : 'dijkstra') : null
 
