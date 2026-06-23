@@ -196,28 +196,39 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   function stairRoutePoint(stairNode) {
     if (!stairNode?.isStair) return { x: stairNode.x, y: stairNode.y }
     const vector = stairDirectionVector(stairNode)
-    const halfH = (stairNode.height ?? GRID * 1.6) / 2
+    const half = stairAxisHalf(stairNode)
     return {
-      x: stairNode.x + vector.x * halfH,
-      y: stairNode.y + vector.y * halfH,
+      x: stairNode.x + vector.x * half,
+      y: stairNode.y + vector.y * half,
     }
   }
 
   function stairDirectionVector(stairNode) {
     const angle = stairNode.angle ?? 0
     const direction = stairNode.direction === 'down' ? -1 : 1
+    const width = stairNode.width ?? GRID * 0.9
+    const height = stairNode.height ?? GRID * 1.6
+    const useHorizontalAxis = width >= height
+    const localX = useHorizontalAxis ? direction : 0
+    const localY = useHorizontalAxis ? 0 : direction
     return {
-      x: -Math.sin(angle) * direction,
-      y: Math.cos(angle) * direction,
+      x: localX * Math.cos(angle) - localY * Math.sin(angle),
+      y: localX * Math.sin(angle) + localY * Math.cos(angle),
     }
+  }
+
+  function stairAxisHalf(stairNode) {
+    const width = stairNode.width ?? GRID * 0.9
+    const height = stairNode.height ?? GRID * 1.6
+    return (width >= height ? width : height) / 2
   }
 
   function stairLeadPoint(stairNode) {
     const point = stairRoutePoint(stairNode)
     const vector = stairDirectionVector(stairNode)
     return {
-      x: point.x + vector.x * GRID * 0.9,
-      y: point.y + vector.y * GRID * 0.9,
+      x: point.x + vector.x * GRID * 0.55,
+      y: point.y + vector.y * GRID * 0.55,
     }
   }
 
@@ -528,14 +539,29 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
       ctx.stroke()
     }
     ctx.fillStyle = '#374151'
+    const arrowUsesHorizontalAxis = w >= h
+    const arrowHalf = (arrowUsesHorizontalAxis ? w : h) / 2
+    const arrowStart = -arrowHalf + 5 * invScale
+    const arrowEnd = arrowHalf - 7 * invScale
     ctx.beginPath()
-    ctx.moveTo(0, direction * (-h / 2 + 5 * invScale))
-    ctx.lineTo(0, direction * (h / 2 - 7 * invScale))
+    if (arrowUsesHorizontalAxis) {
+      ctx.moveTo(direction * arrowStart, 0)
+      ctx.lineTo(direction * arrowEnd, 0)
+    } else {
+      ctx.moveTo(0, direction * arrowStart)
+      ctx.lineTo(0, direction * arrowEnd)
+    }
     ctx.stroke()
     ctx.beginPath()
-    ctx.moveTo(0, direction * (h / 2 - 5 * invScale))
-    ctx.lineTo(-4 * invScale, direction * (h / 2 - 12 * invScale))
-    ctx.lineTo(4 * invScale, direction * (h / 2 - 12 * invScale))
+    if (arrowUsesHorizontalAxis) {
+      ctx.moveTo(direction * (arrowHalf - 5 * invScale), 0)
+      ctx.lineTo(direction * (arrowHalf - 12 * invScale), -4 * invScale)
+      ctx.lineTo(direction * (arrowHalf - 12 * invScale), 4 * invScale)
+    } else {
+      ctx.moveTo(0, direction * (arrowHalf - 5 * invScale))
+      ctx.lineTo(-4 * invScale, direction * (arrowHalf - 12 * invScale))
+      ctx.lineTo(4 * invScale, direction * (arrowHalf - 12 * invScale))
+    }
     ctx.closePath()
     ctx.fill()
     ctx.restore()
