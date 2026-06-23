@@ -40,7 +40,7 @@ export default function StatusBar() {
           className="w-5 h-5 rounded flex items-center justify-center text-[12px] text-[#888] hover:text-[#555] hover:bg-[#f0f0f0] transition-all"
           title="Зменшити"
         >
-          в€’
+          -
         </button>
         <button
           onClick={handleZoomReset}

@@ -25,7 +25,7 @@ function graphSignature(detectedRooms, doors, exits, stairs, walls) {
   ).join('|')
   const doorPart = doors.map(item => `${item.x},${item.y},${item.angle ?? ''}`).join('|')
   const exitPart = exits.map(item => `${item.x},${item.y},${item.angle ?? ''}`).join('|')
-  const stairPart = stairs.map(item => `${item.x},${item.y},${item.width ?? ''},${item.height ?? ''},${item.angle ?? ''}`).join('|')
+  const stairPart = stairs.map(item => `${item.x},${item.y},${item.width ?? ''},${item.height ?? ''},${item.angle ?? ''},${item.direction ?? ''}`).join('|')
   const wallPart = walls.map(item => `${item.x1},${item.y1},${item.x2},${item.y2}`).join('|')
   return `${roomPart}#${doorPart}#${exitPart}#${stairPart}#${wallPart}`
 }
@@ -484,6 +484,10 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
       id: uid++,
       x: stair.x,
       y: stair.y,
+      width: stair.width,
+      height: stair.height,
+      angle: stair.angle,
+      direction: stair.direction,
       isExit: false,
       isStair: true,
     }

@@ -263,6 +263,40 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     return { x: wallNode.x + dx * t, y: wallNode.y + dy * t }
   }
 
+  function stairRoutePoint(stairNode) {
+    if (!stairNode?.isStair) return { x: stairNode.x, y: stairNode.y }
+    const vector = stairDirectionVector(stairNode)
+    const halfH = (stairNode.height ?? GRID * 1.6) / 2
+    return {
+      x: stairNode.x + vector.x * halfH,
+      y: stairNode.y + vector.y * halfH,
+    }
+  }
+
+  function stairDirectionVector(stairNode) {
+    const angle = stairNode.angle ?? 0
+    const direction = stairNode.direction === 'down' ? -1 : 1
+    return {
+      x: -Math.sin(angle) * direction,
+      y: Math.cos(angle) * direction,
+    }
+  }
+
+  function stairLeadPoint(stairNode) {
+    const point = stairRoutePoint(stairNode)
+    const vector = stairDirectionVector(stairNode)
+    return {
+      x: point.x + vector.x * GRID * 0.9,
+      y: point.y + vector.y * GRID * 0.9,
+    }
+  }
+
+  function routePoint(node, toward) {
+    if (node.isDoor || node.isExit) return wallOffset(node, toward)
+    if (node.isStair) return stairRoutePoint(node)
+    return { x: node.x, y: node.y }
+  }
+
   function findEdge(a, b) {
     return edges.find(edge =>
       (edge.from === a.id && edge.to === b.id) ||
@@ -309,8 +343,8 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
   function removePortalHooks(points, startNode, endNode) {
     const result = [...points]
-    const startIsPortal = startNode.isDoor || startNode.isExit
-    const endIsPortal = endNode.isDoor || endNode.isExit
+    const startIsPortal = startNode.isDoor || startNode.isExit || startNode.isStair
+    const endIsPortal = endNode.isDoor || endNode.isExit || endNode.isStair
 
     while (
       startIsPortal &&
@@ -334,10 +368,10 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   function edgePoints(a, b) {
     const edge = findEdge(a, b)
     if (!edge?.points?.length) {
-      return cleanupRoutePoints(removePortalHooks([
-        (a.isDoor || a.isExit) ? wallOffset(a, b) : { x: a.x, y: a.y },
-        (b.isDoor || b.isExit) ? wallOffset(b, a) : { x: b.x, y: b.y },
-      ], a, b))
+      const points = [routePoint(a, b), routePoint(b, a)]
+      if (a.isStair) points.splice(1, 0, stairLeadPoint(a))
+      if (b.isStair) points.splice(points.length - 1, 0, stairLeadPoint(b))
+      return cleanupRoutePoints(removePortalHooks(points, a, b))
     }
 
     const points = edge.from === a.id
@@ -345,10 +379,10 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
       : [...edge.points].reverse().map(point => ({ x: point.x, y: point.y }))
 
     if (points.length > 1) {
-      points[0] = (a.isDoor || a.isExit) ? wallOffset(a, points[1]) : { x: a.x, y: a.y }
-      points[points.length - 1] = (b.isDoor || b.isExit)
-        ? wallOffset(b, points[points.length - 2])
-        : { x: b.x, y: b.y }
+      points[0] = routePoint(a, points[1])
+      points[points.length - 1] = routePoint(b, points[points.length - 2])
+      if (a.isStair) points.splice(1, 0, stairLeadPoint(a))
+      if (b.isStair) points.splice(points.length - 1, 0, stairLeadPoint(b))
     }
 
     return cleanupRoutePoints(removePortalHooks(points, a, b))
@@ -420,8 +454,9 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     ctx.fillText('▲', last.x, last.y - 0.5 * invScale)
   }
   if (showStartDot) {
+    const startPoint = path.length > 1 ? routePoint(path[0], path[1]) : path[0]
     ctx.fillStyle = color; ctx.beginPath()
-    ctx.arc(path[0].x, path[0].y, 4 * invScale, 0, Math.PI * 2); ctx.fill()
+    ctx.arc(startPoint.x, startPoint.y, 4 * invScale, 0, Math.PI * 2); ctx.fill()
   }
 }
 
