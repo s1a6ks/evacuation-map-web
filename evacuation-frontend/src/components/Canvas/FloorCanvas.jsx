@@ -24,6 +24,7 @@ export default function FloorCanvas() {
   const stairDragOffset = useRef({ x: 0, y: 0 })
   const resizingStairPreview = useRef(null)
   const resizeFrame = useRef(null)
+  const renderFrame = useRef(null)
 
   const [editingFloor, setEditingFloor]     = useState(null)
   const [floorNameInput, setFloorNameInput] = useState('')
@@ -74,7 +75,14 @@ export default function FloorCanvas() {
   }, [handleWheel])
 
   useEffect(() => {
-    render(drawing, drawStart, mousePos, scale, offset, stairPreview)
+    if (renderFrame.current) cancelAnimationFrame(renderFrame.current)
+    renderFrame.current = requestAnimationFrame(() => {
+      renderFrame.current = null
+      render(drawing, drawStart, mousePos, scale, offset, stairPreview)
+    })
+    return () => {
+      if (renderFrame.current) cancelAnimationFrame(renderFrame.current)
+    }
   }, [drawing, drawStart, mousePos, render, scale, offset, stairPreview])
 
   // ── Pan ─────────────────────────────────────────────────

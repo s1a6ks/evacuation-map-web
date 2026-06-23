@@ -60,6 +60,7 @@ const useStore = create((set) => ({
     const saved = { ...s.floorDataMap }
     saved[s.currentFloorId] = {
       walls: s.walls, doors: s.doors, exits: s.exits, stairs: s.stairs, extinguishers: s.extinguishers,
+      detectedRooms: s.detectedRooms, graphNodes: s.graphNodes, graphEdges: s.graphEdges,
     }
     return {
       floors: [...s.floors, { id: newId, name: name || `${newId} поверх` }],
@@ -79,6 +80,7 @@ const useStore = create((set) => ({
     const saved = { ...s.floorDataMap }
     saved[s.currentFloorId] = {
       walls: s.walls, doors: s.doors, exits: s.exits, stairs: s.stairs, extinguishers: s.extinguishers,
+      detectedRooms: s.detectedRooms, graphNodes: s.graphNodes, graphEdges: s.graphEdges,
     }
     // Завантажуємо цільовий поверх
     const target = saved[floorId] || { walls: [], doors: [], exits: [], stairs: [], extinguishers: [] }
@@ -92,7 +94,7 @@ const useStore = create((set) => ({
       extinguishers: target.extinguishers ?? [],
       // Скидаємо залежні дані — перерахуються автоматично
       // currentPath і multiFloorPath НЕ скидаємо — щоб маршрут зберігався при переключенні поверху
-      detectedRooms: [], graphNodes: [], graphEdges: [],
+      detectedRooms: target.detectedRooms ?? [], graphNodes: target.graphNodes ?? [], graphEdges: target.graphEdges ?? [],
       allPaths: [], selectedRoomId: null,
       selectedRoomIds: [], multiRoomPaths: {},
     }
@@ -112,7 +114,7 @@ const useStore = create((set) => ({
         floorDataMap: saved,
         walls: target.walls, doors: target.doors,
         exits: target.exits, stairs: target.stairs,
-        detectedRooms: [], graphNodes: [], graphEdges: [],
+        detectedRooms: target.detectedRooms ?? [], graphNodes: target.graphNodes ?? [], graphEdges: target.graphEdges ?? [],
         currentPath: null, multiFloorPath: null, allPaths: [], selectedRoomId: null,
       }
     }
@@ -150,7 +152,7 @@ const useStore = create((set) => ({
 
   // ── Кімнати ────────────────────────────────────────────────
   detectedRooms: [],
-  setDetectedRooms: (rooms) => set({ detectedRooms: rooms }),
+  setDetectedRooms: (rooms) => set(s => s.detectedRooms === rooms ? s : { detectedRooms: rooms }),
   setRoomName: (roomId, name) => set(s => ({
     detectedRooms: s.detectedRooms.map(r => r.id === roomId ? { ...r, label: name } : r)
   })),
@@ -162,7 +164,11 @@ const useStore = create((set) => ({
   // ── Граф ───────────────────────────────────────────────────
   graphNodes: [],
   graphEdges: [],
-  setGraph: (nodes, edges) => set({ graphNodes: nodes, graphEdges: edges }),
+  setGraph: (nodes, edges) => set(s =>
+    s.graphNodes === nodes && s.graphEdges === edges
+      ? s
+      : { graphNodes: nodes, graphEdges: edges }
+  ),
 
   // ── Навігація ──────────────────────────────────────────────
   algorithm: 'astar',

@@ -2,12 +2,37 @@ import { useEffect } from 'react'
 import useStore from '../../../store/useStore'
 
 const GRID = 20
+const roomCellIndexCache = new WeakMap()
+const graphCache = new Map()
+
+function getRoomCellIndex(detectedRooms) {
+  const cached = roomCellIndexCache.get(detectedRooms)
+  if (cached) return cached
+
+  const index = new Map()
+  detectedRooms.forEach(room => {
+    room.cells.forEach(([row, col]) => {
+      index.set(`${row},${col}`, room)
+    })
+  })
+  roomCellIndexCache.set(detectedRooms, index)
+  return index
+}
+
+function graphSignature(detectedRooms, doors, exits, stairs, walls) {
+  const roomPart = detectedRooms.map(room =>
+    `${room.id}:${Math.round(room.cx)},${Math.round(room.cy)}:${room.cells.length}`
+  ).join('|')
+  const doorPart = doors.map(item => `${item.x},${item.y},${item.angle ?? ''}`).join('|')
+  const exitPart = exits.map(item => `${item.x},${item.y},${item.angle ?? ''}`).join('|')
+  const stairPart = stairs.map(item => `${item.x},${item.y},${item.width ?? ''},${item.height ?? ''},${item.angle ?? ''}`).join('|')
+  const wallPart = walls.map(item => `${item.x1},${item.y1},${item.x2},${item.y2}`).join('|')
+  return `${roomPart}#${doorPart}#${exitPart}#${stairPart}#${wallPart}`
+}
 
 // ── Знайти кімнату за клітинкою (row, col) ──────────────────
 function findRoomAtCell(detectedRooms, col, row) {
-  return detectedRooms.find(room =>
-    room.cells.some(([r, c]) => r === row && c === col)
-  ) ?? null
+  return getRoomCellIndex(detectedRooms).get(`${row},${col}`) ?? null
 }
 
 function roomsAtPoint(detectedRooms, point) {
@@ -570,7 +595,13 @@ export default function useGraphGen() {
       return
     }
 
-    const { nodes, edges } = generateGraph(detectedRooms, doors, exits, stairs, walls)
+    const cacheKey = graphSignature(detectedRooms, doors, exits, stairs, walls)
+    const cachedGraph = graphCache.get(cacheKey)
+    const { nodes, edges } = cachedGraph ?? generateGraph(detectedRooms, doors, exits, stairs, walls)
+    if (!cachedGraph) {
+      graphCache.set(cacheKey, { nodes, edges })
+      if (graphCache.size > 20) graphCache.delete(graphCache.keys().next().value)
+    }
     setGraph(nodes, edges)
   }, [detectedRooms, doors, exits, stairs, walls, setGraph])
 }

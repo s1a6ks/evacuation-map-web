@@ -4,6 +4,11 @@ import useStore from '../../../store/useStore'
 const GRID = 20
 const METER = 0.5
 const MIN_ROOM_CELLS = 4
+const roomCache = new Map()
+
+function wallsSignature(walls) {
+  return walls.map(wall => `${wall.x1},${wall.y1},${wall.x2},${wall.y2}`).join('|')
+}
 
 function edgeKey(rowA, colA, rowB, colB) {
   return `${rowA},${colA}:${rowB},${colB}`
@@ -73,11 +78,12 @@ function bfsFill(grid, startRow, startCol, rows, cols, targetVal, fillVal, block
 
   const cells = []
   const queue = [[startRow, startCol]]
+  let head = 0
   grid[startRow][startCol] = fillVal
 
   const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]]
-  while (queue.length > 0) {
-    const [row, col] = queue.shift()
+  while (head < queue.length) {
+    const [row, col] = queue[head++]
     cells.push([row, col])
 
     for (const [dRow, dCol] of dirs) {
@@ -102,25 +108,43 @@ function findRoomAnchor(cells) {
   const cellSet = new Set(cells.map(([row, col]) => `${row},${col}`))
   const avgRow = cells.reduce((sum, [row]) => sum + row, 0) / cells.length
   const avgCol = cells.reduce((sum, [, col]) => sum + col, 0) / cells.length
+  const boundary = []
+
+  cells.forEach(([row, col]) => {
+    const isBoundary =
+      !cellSet.has(`${row - 1},${col}`) ||
+      !cellSet.has(`${row + 1},${col}`) ||
+      !cellSet.has(`${row},${col - 1}`) ||
+      !cellSet.has(`${row},${col + 1}`)
+
+    if (isBoundary) boundary.push([row, col])
+  })
+
+  const edgeDistance = new Map()
+  const queue = [...boundary]
+  let head = 0
+  boundary.forEach(([row, col]) => edgeDistance.set(`${row},${col}`, 0))
+
+  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]]
+  while (head < queue.length) {
+    const [row, col] = queue[head++]
+    const dist = edgeDistance.get(`${row},${col}`)
+
+    dirs.forEach(([dRow, dCol]) => {
+      const nextRow = row + dRow
+      const nextCol = col + dCol
+      const key = `${nextRow},${nextCol}`
+      if (!cellSet.has(key) || edgeDistance.has(key)) return
+      edgeDistance.set(key, dist + 1)
+      queue.push([nextRow, nextCol])
+    })
+  }
 
   let best = cells[0]
   let bestScore = -Infinity
 
   cells.forEach(([row, col]) => {
-    let minDistToEdge = Infinity
-
-    cells.forEach(([otherRow, otherCol]) => {
-      const isBoundary =
-        !cellSet.has(`${otherRow - 1},${otherCol}`) ||
-        !cellSet.has(`${otherRow + 1},${otherCol}`) ||
-        !cellSet.has(`${otherRow},${otherCol - 1}`) ||
-        !cellSet.has(`${otherRow},${otherCol + 1}`)
-
-      if (isBoundary) {
-        minDistToEdge = Math.min(minDistToEdge, Math.hypot(row - otherRow, col - otherCol))
-      }
-    })
-
+    const minDistToEdge = edgeDistance.get(`${row},${col}`) ?? 0
     const distToAverage = Math.hypot(row - avgRow, col - avgCol)
     const score = minDistToEdge * 10 - distToAverage
     if (score > bestScore) {
@@ -134,6 +158,9 @@ function findRoomAnchor(cells) {
 
 export function detectRooms(walls) {
   if (walls.length === 0) return []
+  const cacheKey = wallsSignature(walls)
+  const cachedRooms = roomCache.get(cacheKey)
+  if (cachedRooms) return cachedRooms
 
   let minCol = Infinity, maxCol = -Infinity
   let minRow = Infinity, maxRow = -Infinity
@@ -192,6 +219,8 @@ export function detectRooms(walls) {
     }
   }
 
+  roomCache.set(cacheKey, rooms)
+  if (roomCache.size > 20) roomCache.delete(roomCache.keys().next().value)
   return rooms
 }
 
