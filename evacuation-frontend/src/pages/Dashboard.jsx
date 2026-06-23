@@ -241,6 +241,10 @@ function PlanCard({ plan, onOpen, onDelete, onRestore, onDeleteForever, view, is
               <span>·</span>
               <span className="text-[#888]">{plan.raw.stairs.length} сходів</span>
             </>}
+            {plan.raw.windows?.length > 0 && <>
+              <span>·</span>
+              <span>{plan.raw.windows.length} вікон</span>
+            </>}
           </div>
         )}
       </div>

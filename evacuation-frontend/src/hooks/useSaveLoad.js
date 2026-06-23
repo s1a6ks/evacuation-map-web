@@ -29,7 +29,7 @@ function pxToM(px) {
 }
 
 function preparePayload(state, planName) {
-  const { walls, doors, exits, stairs, extinguishers, graphNodes, graphEdges, detectedRooms } = state
+  const { walls, doors, exits, stairs, windows, extinguishers, graphNodes, graphEdges, detectedRooms } = state
 
   const nodes = graphNodes.map(n => ({
     id:          n.id,
@@ -53,14 +53,14 @@ function preparePayload(state, planName) {
     rooms:        detectedRooms,
     nodes,
     edges,
-    _raw: { walls, doors, exits, stairs, extinguishers },
+    _raw: { walls, doors, exits, stairs, windows, extinguishers },
   }
 }
 
 export default function useSaveLoad() {
   const store = useStore()
   const {
-    walls, doors, exits, stairs, extinguishers,
+    walls, doors, exits, stairs, windows, extinguishers,
     graphNodes, graphEdges, detectedRooms,
     setBuildingId, setFloorId, setIdMaps, currentPlanId, setCurrentPlanId,
     setGraph, clearAll,
@@ -71,7 +71,7 @@ export default function useSaveLoad() {
   } = store
 
   const autoSaveTimer = useRef(null)
-  const lastWallsRef  = useRef(null)
+  const lastGeometryRef  = useRef(null)
 
   // ── SAVE ────────────────────────────────────────────────────
   // Стратегія: спочатку завжди зберігаємо локально (щоб план
@@ -84,7 +84,7 @@ export default function useSaveLoad() {
     setIsSaving(true)
     try {
       const payload = preparePayload(
-        { walls, doors, exits, stairs, extinguishers, graphNodes, graphEdges, detectedRooms },
+        { walls, doors, exits, stairs, windows, extinguishers, graphNodes, graphEdges, detectedRooms },
         planName
       )
 
@@ -148,7 +148,7 @@ export default function useSaveLoad() {
     } finally {
       setIsSaving(false)
     }
-  }, [walls, doors, exits, stairs, extinguishers, graphNodes, graphEdges, detectedRooms, currentPlanId, currentPlanName,
+  }, [walls, doors, exits, stairs, windows, extinguishers, graphNodes, graphEdges, detectedRooms, currentPlanId, currentPlanName,
       setBuildingId, setCurrentPlanId, setFloorId, setIdMaps, setIsSaving, setLastSaved, setCurrentPlanName])
 
   // ── LOAD ────────────────────────────────────────────────────
@@ -156,13 +156,14 @@ export default function useSaveLoad() {
     clearAll()
 
     const { id, raw, buildingId: bId, floorId: fId, name } = plan
-    const { addWall, addDoor, addExit, addStair, addExtinguisher } = useStore.getState()
+    const { addWall, addDoor, addExit, addStair, addWindow, addExtinguisher } = useStore.getState()
 
     if (raw) {
       raw.walls?.forEach(w  => addWall(w))
       raw.doors?.forEach(d  => addDoor(d))
       raw.exits?.forEach(e  => addExit(e))
       raw.stairs?.forEach(s => addStair(s))
+      raw.windows?.forEach(w => addWindow(w))
       raw.extinguishers?.forEach(ex => addExtinguisher(ex))
     }
 
@@ -193,15 +194,15 @@ export default function useSaveLoad() {
   useEffect(() => {
     if (!autoSave) return
     if (walls.length === 0) return
-    const wallsKey = JSON.stringify(walls)
-    if (wallsKey === lastWallsRef.current) return
-    lastWallsRef.current = wallsKey
+    const geometryKey = JSON.stringify({ walls, doors, exits, stairs, windows, extinguishers })
+    if (geometryKey === lastGeometryRef.current) return
+    lastGeometryRef.current = geometryKey
 
     clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => save(), AUTOSAVE_DELAY)
 
     return () => clearTimeout(autoSaveTimer.current)
-  }, [walls, autoSave, save])
+  }, [walls, doors, exits, stairs, windows, extinguishers, autoSave, save])
 
   const lastSavedLabel = lastSaved
     ? `Збережено о ${lastSaved.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`

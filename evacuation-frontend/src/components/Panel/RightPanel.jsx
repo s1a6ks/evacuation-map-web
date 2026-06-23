@@ -8,7 +8,7 @@ const COLORS = ['#4d9fff', '#22c984', '#f5c542', '#ff4422', '#c084fc', '#fb923c'
 export default function RightPanel() {
   const {
     mode, detectedRooms, graphNodes, graphEdges,
-    walls, doors, exits, stairs, extinguishers,
+    walls, doors, exits, stairs, windows, extinguishers,
     selectedRoomId, setSelectedRoomId, viewMode,
     selectedStairInfo, setSelectedStairInfo, setStairLink,
     setRoomName,
@@ -26,7 +26,7 @@ export default function RightPanel() {
   const renameExit = useStore(s => s.renameExit)
 
   function currentFloorData() {
-    return { walls, doors, exits, stairs, extinguishers, detectedRooms }
+    return { walls, doors, exits, stairs, windows, extinguishers, detectedRooms }
   }
 
   function routeData() {
@@ -153,6 +153,7 @@ export default function RightPanel() {
             <div className="flex flex-col gap-2">
               <Row label="Стін"    value={walls.length} />
               <Row label="Дверей"  value={doors.length} />
+              <Row label="Вікон"   value={windows.length} />
               <Row label="Виходів" value={exits.length}         color="#22c984" />
               <Row label="Кімнат"  value={detectedRooms.length} color="#22c984" />
               <Row label="Сходів"  value={stairs.length}        color="#f5c542" />

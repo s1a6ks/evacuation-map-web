@@ -13,6 +13,67 @@ const REC_STYLES = {
   error: { bg: '#fff1f2', border: '#fca5a5', dot: '#ff4422', text: '#991b1b' },
 }
 
+function normalizeWindowSegment(windowItem) {
+  if (windowItem.x1 != null) return windowItem
+  const angle = windowItem.angle ?? (windowItem.horiz ? 0 : Math.PI / 2)
+  const half = GRID * 0.9
+  const dx = Math.cos(angle) * half
+  const dy = Math.sin(angle) * half
+  return {
+    ...windowItem,
+    x1: windowItem.x - dx,
+    y1: windowItem.y - dy,
+    x2: windowItem.x + dx,
+    y2: windowItem.y + dy,
+  }
+}
+
+function drawWindowSegment(ctx, windowItem, wallThickness, invScale) {
+  const segment = normalizeWindowSegment(windowItem)
+  const dx = segment.x2 - segment.x1
+  const dy = segment.y2 - segment.y1
+  const length = Math.hypot(dx, dy)
+  if (length < 2) return
+
+  const cx = (segment.x1 + segment.x2) / 2
+  const cy = (segment.y1 + segment.y2) / 2
+  const angle = Math.atan2(dy, dx)
+  const half = length / 2
+  const gap = Math.max(2.8 * invScale, wallThickness * 0.22)
+
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(angle)
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = (wallThickness + 4) * invScale
+  ctx.lineCap = 'butt'
+  ctx.beginPath()
+  ctx.moveTo(-half, 0)
+  ctx.lineTo(half, 0)
+  ctx.stroke()
+
+  ctx.strokeStyle = '#475569'
+  ctx.lineWidth = 1.1 * invScale
+  ;[-gap, gap].forEach(y => {
+    ctx.beginPath()
+    ctx.moveTo(-half, y)
+    ctx.lineTo(half, y)
+    ctx.stroke()
+  })
+
+  ctx.strokeStyle = 'rgba(71,85,105,0.72)'
+  ctx.lineWidth = 0.9 * invScale
+  const dividerCount = Math.max(1, Math.floor(length / (GRID * 1.4)))
+  for (let i = 1; i <= dividerCount; i++) {
+    const x = -half + (length * i) / (dividerCount + 1)
+    ctx.beginPath()
+    ctx.moveTo(x, -gap)
+    ctx.lineTo(x, gap)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ЕВАКУАЦІЙНІ МАРШРУТИ (canvas helpers)
 // ═══════════════════════════════════════════════════════════════
@@ -297,14 +358,14 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
 function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
   const {
-    walls = [], doors = [], exits = [], stairs = [],
+    walls = [], doors = [], exits = [], stairs = [], windows = [],
     extinguishers = [], detectedRooms = [],
   } = floorData
 
   const ctx = canvas.getContext('2d')
   const W = canvas.width, H = canvas.height
   const invScale = 1 / scale
-  const wallThickness = 3
+  const wallThickness = 5
 
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#ffffff'
@@ -371,6 +432,10 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
   })
 
   // ── Двері ────────────────────────────────────────────────
+  windows.forEach(windowItem => {
+    drawWindowSegment(ctx, windowItem, wallThickness, invScale)
+  })
+
   doors.forEach(door => {
     const r = GRID * 0.9
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = (wallThickness + 4) * invScale; ctx.lineCap = 'butt'
@@ -464,7 +529,7 @@ function drawFloorOnCanvas(canvas, floorData, scale, offset, evacData) {
 
 // ── Будує offscreen canvas тільки з планом ────────────────────
 function buildFloorCanvas(floorData, evacData) {
-  const { walls = [], doors = [], exits = [], stairs = [], extinguishers = [] } = floorData
+  const { walls = [], doors = [], exits = [], stairs = [], windows = [], extinguishers = [] } = floorData
 
   const OUTPUT_W = 1400, OUTPUT_H = 990
   const canvas = document.createElement('canvas')
@@ -474,6 +539,10 @@ function buildFloorCanvas(floorData, evacData) {
     ...walls.flatMap(w => [{ x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 }]),
     ...doors.map(d => ({ x: d.x, y: d.y })),
     ...exits.map(e => ({ x: e.x, y: e.y })),
+    ...windows.flatMap(w => {
+      const segment = normalizeWindowSegment(w)
+      return [{ x: segment.x1, y: segment.y1 }, { x: segment.x2, y: segment.y2 }]
+    }),
     ...stairs.flatMap(s => {
       const halfW = (s.width ?? GRID * 0.9) / 2
       const halfH = (s.height ?? GRID * 1.6) / 2
@@ -863,7 +932,7 @@ function buildDocumentCanvas(floorData, evacData, planName, floorName) {
 function getFloorData(floor, floorDataMap, currentFloorId, currentFloorData) {
   return floor.id === currentFloorId
     ? currentFloorData
-    : (floorDataMap[floor.id] || { walls: [], doors: [], exits: [], stairs: [], extinguishers: [] })
+    : (floorDataMap[floor.id] || { walls: [], doors: [], exits: [], stairs: [], windows: [], extinguishers: [] })
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -902,7 +971,7 @@ export function exportAllFloorsToPNG(planName, floors, floorDataMap, currentFloo
 export function exportCurrentFloorToPDF(planName, floorName, floorData) {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const docCanvas = buildDocumentCanvas(
-    floorData || { walls: [], doors: [], exits: [], stairs: [], extinguishers: [] },
+    floorData || { walls: [], doors: [], exits: [], stairs: [], windows: [], extinguishers: [] },
     null, planName, floorName
   )
   pdf.addImage(docCanvas.toDataURL('image/png'), 'PNG', 0, 0, 297, 210)

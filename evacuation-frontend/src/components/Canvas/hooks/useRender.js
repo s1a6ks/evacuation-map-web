@@ -67,6 +67,70 @@ function drawWallCut(ctx, item, halfWidth, wallThickness, invScale, bgColor) {
   drawAlongWall(ctx, item, halfWidth, bgColor, wallThickness + 4, invScale, 'butt')
 }
 
+function normalizeWindowSegment(windowItem) {
+  if (windowItem.x1 != null) return windowItem
+  const angle = windowItem.angle ?? (windowItem.horiz ? 0 : Math.PI / 2)
+  const half = GRID * 0.9
+  const dx = Math.cos(angle) * half
+  const dy = Math.sin(angle) * half
+  return {
+    ...windowItem,
+    x1: windowItem.x - dx,
+    y1: windowItem.y - dy,
+    x2: windowItem.x + dx,
+    y2: windowItem.y + dy,
+  }
+}
+
+function drawWindowSegment(ctx, windowItem, wallThickness, invScale, bgColor) {
+  const segment = normalizeWindowSegment(windowItem)
+  const dx = segment.x2 - segment.x1
+  const dy = segment.y2 - segment.y1
+  const length = Math.hypot(dx, dy)
+  if (length < 2) return
+
+  const cx = (segment.x1 + segment.x2) / 2
+  const cy = (segment.y1 + segment.y2) / 2
+  const angle = Math.atan2(dy, dx)
+  const half = length / 2
+  const gap = Math.max(2.8 * invScale, wallThickness * 0.22)
+
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(angle)
+
+  ctx.strokeStyle = bgColor
+  ctx.lineWidth = (wallThickness + 4) * invScale
+  ctx.lineCap = 'butt'
+  ctx.beginPath()
+  ctx.moveTo(-half, 0)
+  ctx.lineTo(half, 0)
+  ctx.stroke()
+
+  ctx.strokeStyle = '#475569'
+  ctx.lineWidth = 1.1 * invScale
+  ctx.lineCap = 'butt'
+  ;[-gap, gap].forEach(y => {
+    ctx.beginPath()
+    ctx.moveTo(-half, y)
+    ctx.lineTo(half, y)
+    ctx.stroke()
+  })
+
+  ctx.strokeStyle = 'rgba(71,85,105,0.72)'
+  ctx.lineWidth = 0.9 * invScale
+  const dividerCount = Math.max(1, Math.floor(length / (GRID * 1.4)))
+  for (let i = 1; i <= dividerCount; i++) {
+    const x = -half + (length * i) / (dividerCount + 1)
+    ctx.beginPath()
+    ctx.moveTo(x, -gap)
+    ctx.lineTo(x, gap)
+    ctx.stroke()
+  }
+
+  ctx.restore()
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  ЕВАКУАЦІЙНІ МАРШРУТИ
 // ═══════════════════════════════════════════════════════════════
@@ -367,7 +431,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
 export default function useRender(canvasRef) {
   const {
-    walls, doors, exits, stairs, extinguishers,
+    walls, doors, exits, stairs, windows, extinguishers,
     detectedRooms, graphNodes, graphEdges,
     currentPath, multiFloorPath, allPaths, evacuationView, tool, selectedRoomId, viewMode,
     mode, currentFloorId, blockedExits, blockedDoors,
@@ -579,7 +643,7 @@ export default function useRender(canvasRef) {
     // ══════════════════════════════════════════════════════════
     //  СТІНИ
     // ══════════════════════════════════════════════════════════
-    const wallThickness = 5
+    const wallThickness = 7
     const wallColor = isSimple ? '#111827' : '#1e293b'
     walls.forEach(wall => {
       const dx = wall.x2 - wall.x1, dy = wall.y2 - wall.y1
@@ -600,6 +664,13 @@ export default function useRender(canvasRef) {
         ;[[wall.x1, wall.y1], [wall.x2, wall.y2]].forEach(([x, y]) => {
           ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
         })
+    })
+
+    // ══════════════════════════════════════════════════════════
+    //  ВІКНА
+    // ══════════════════════════════════════════════════════════
+    windows?.forEach(windowItem => {
+      drawWindowSegment(ctx, windowItem, wallThickness, invScale, isSimple ? '#ffffff' : '#f8fafc')
     })
 
 
@@ -930,22 +1001,23 @@ export default function useRender(canvasRef) {
     //  PREVIEW МАЛЮВАННЯ
     // ══════════════════════════════════════════════════════════
     if (mode === 'constructor' && drawing && drawStart) {
-      ctx.strokeStyle = '#ff442250'
+      const isWindowPreview = tool === 'window'
+      ctx.strokeStyle = isWindowPreview ? 'rgba(71,85,105,0.55)' : '#ff442250'
       ctx.lineWidth = 2 * invScale
       ctx.setLineDash([6 * invScale, 4 * invScale])
       ctx.lineCap = 'round'
       ctx.beginPath(); ctx.moveTo(drawStart.x, drawStart.y); ctx.lineTo(mousePos.x, mousePos.y); ctx.stroke()
       ctx.setLineDash([])
 
-      ctx.fillStyle = '#ff4422'
+      ctx.fillStyle = isWindowPreview ? '#475569' : '#ff4422'
       ctx.beginPath(); ctx.arc(drawStart.x, drawStart.y, 4 * invScale, 0, Math.PI * 2); ctx.fill()
 
       const dist = Math.hypot(mousePos.x - drawStart.x, mousePos.y - drawStart.y)
       const meters = ((dist / GRID) * METER).toFixed(1)
       const mx = (drawStart.x + mousePos.x) / 2, my = (drawStart.y + mousePos.y) / 2
-      ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.strokeStyle = '#ff442230'; ctx.lineWidth = 1 * invScale
+      ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.strokeStyle = isWindowPreview ? 'rgba(71,85,105,0.22)' : '#ff442230'; ctx.lineWidth = 1 * invScale
       ctx.beginPath(); ctx.roundRect(mx - 18 * invScale, my - 8 * invScale, 36 * invScale, 16 * invScale, 3 * invScale); ctx.fill(); ctx.stroke()
-      ctx.fillStyle = '#ff4422'; ctx.font = `bold ${9 * invScale}px JetBrains Mono, monospace`
+      ctx.fillStyle = isWindowPreview ? '#475569' : '#ff4422'; ctx.font = `bold ${9 * invScale}px JetBrains Mono, monospace`
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
       ctx.fillText(`${meters}м`, mx, my)
     }

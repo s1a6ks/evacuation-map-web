@@ -382,7 +382,7 @@ export default function EvacuationPanel() {
           </Section>
 
           {analysis.roomRanking.length > 0 && (
-            <Section title="Рейтинг кімнат">
+            <Section title="Відстані до виходу">
               <div className="flex flex-col gap-[3px]">
                 {analysis.roomRanking.slice(0, showAllRooms ? undefined : 6).map((room) => {
                   const distVal = room.distM ? parseFloat(room.distM) : null

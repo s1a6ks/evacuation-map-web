@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import useStore from '../store/useStore'
 
 export default function useKeyboardShortcuts() {
@@ -13,7 +13,7 @@ export default function useKeyboardShortcuts() {
     function handleKeyDown(e) {
       const { undo, tool, setTool, mode, history, scale, offset, setTransform, resetTransform } = useStore.getState()
 
-      // ── Ctrl+Z / Cmd+Z — Undo ────────────────────────────
+      // в”Ђв”Ђ Ctrl+Z / Cmd+Z вЂ” Undo в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
         e.preventDefault()
         e.stopPropagation()
@@ -23,7 +23,7 @@ export default function useKeyboardShortcuts() {
         return
       }
 
-      // ── Ctrl +/-/0 — Zoom ─────────────────────────────────
+      // в”Ђв”Ђ Ctrl +/-/0 вЂ” Zoom в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '+' || e.key === '=') {
           e.preventDefault()
@@ -42,10 +42,8 @@ export default function useKeyboardShortcuts() {
         }
       }
 
-      // Решта shortcuts — не спрацьовують у полях вводу
       if (isTyping()) return
 
-      // ── Escape — скасувати малювання ─────────────────────
       if (e.key === 'Escape') {
         if (tool === 'wall') {
           useStore.setState({ drawing: false, drawStart: null })
@@ -56,23 +54,24 @@ export default function useKeyboardShortcuts() {
         return
       }
 
-      // ── Delete/Backspace — перемкнути на Erase ───────────
+      // в”Ђв”Ђ Delete/Backspace вЂ” РїРµСЂРµРјРєРЅСѓС‚Рё РЅР° Erase в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
       if ((e.key === 'Delete' || e.key === 'Backspace') && mode === 'constructor') {
         e.preventDefault()
         setTool('erase')
         return
       }
 
-      // ── Інструменти (тільки конструктор) ─────────────────
+      // в”Ђв”Ђ Р†РЅСЃС‚СЂСѓРјРµРЅС‚Рё (С‚С–Р»СЊРєРё РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
       if (mode !== 'constructor') return
 
       const toolMap = {
-        '1': 'wall', 'w': 'wall', 'W': 'wall', 'ц': 'wall', 'Ц': 'wall',
-        '2': 'door', 'd': 'door', 'D': 'door', 'в': 'door', 'В': 'door',
-        '3': 'exit', 'e': 'exit', 'E': 'exit', 'у': 'exit', 'У': 'exit',
-        '4': 'stair', 's': 'stair', 'S': 'stair', 'і': 'stair', 'І': 'stair',
-        '5': 'erase', 'x': 'erase', 'X': 'erase', 'ч': 'erase', 'Ч': 'erase',
-        'v': 'select', 'V': 'select', 'м': 'select', 'М': 'select',
+        '1': 'wall', 'w': 'wall', 'W': 'wall', 'С†': 'wall', 'Р¦': 'wall',
+        '2': 'door', 'd': 'door', 'D': 'door', 'РІ': 'door', 'Р’': 'door',
+        '3': 'exit', 'e': 'exit', 'E': 'exit', 'Сѓ': 'exit', 'РЈ': 'exit',
+        '4': 'stair', 's': 'stair', 'S': 'stair', 'С–': 'stair', 'Р†': 'stair',
+        '5': 'erase', 'x': 'erase', 'X': 'erase', 'С‡': 'erase', 'Р§': 'erase',
+        'g': 'window', 'G': 'window',
+        'v': 'select', 'V': 'select', 'Рј': 'select', 'Рњ': 'select',
       }
 
       if (toolMap[e.key]) {
@@ -81,7 +80,7 @@ export default function useKeyboardShortcuts() {
       }
     }
 
-    // capture: true — перехоплюємо до того як браузер встигне обробити
+    // capture: true вЂ” РїРµСЂРµС…РѕРїР»СЋС”РјРѕ РґРѕ С‚РѕРіРѕ СЏРє Р±СЂР°СѓР·РµСЂ РІСЃС‚РёРіРЅРµ РѕР±СЂРѕР±РёС‚Рё
     window.addEventListener('keydown', handleKeyDown, { capture: true })
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true })
   }, [])

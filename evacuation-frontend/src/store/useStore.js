@@ -59,7 +59,7 @@ const useStore = create((set) => ({
     // Зберігаємо поточний поверх
     const saved = { ...s.floorDataMap }
     saved[s.currentFloorId] = {
-      walls: s.walls, doors: s.doors, exits: s.exits, stairs: s.stairs, extinguishers: s.extinguishers,
+      walls: s.walls, doors: s.doors, exits: s.exits, stairs: s.stairs, windows: s.windows, extinguishers: s.extinguishers,
       detectedRooms: s.detectedRooms, graphNodes: s.graphNodes, graphEdges: s.graphEdges,
     }
     return {
@@ -67,7 +67,7 @@ const useStore = create((set) => ({
       currentFloorId: newId,
       floorDataMap: saved,
       // Очищаємо canvas для нового поверху
-      walls: [], doors: [], exits: [], stairs: [], extinguishers: [],
+      walls: [], doors: [], exits: [], stairs: [], windows: [], extinguishers: [],
       detectedRooms: [], graphNodes: [], graphEdges: [],
       currentPath: null, multiFloorPath: null, allPaths: [], selectedRoomId: null,
       selectedRoomIds: [], multiRoomPaths: {},
@@ -79,11 +79,11 @@ const useStore = create((set) => ({
     // Зберігаємо поточний поверх
     const saved = { ...s.floorDataMap }
     saved[s.currentFloorId] = {
-      walls: s.walls, doors: s.doors, exits: s.exits, stairs: s.stairs, extinguishers: s.extinguishers,
+      walls: s.walls, doors: s.doors, exits: s.exits, stairs: s.stairs, windows: s.windows, extinguishers: s.extinguishers,
       detectedRooms: s.detectedRooms, graphNodes: s.graphNodes, graphEdges: s.graphEdges,
     }
     // Завантажуємо цільовий поверх
-    const target = saved[floorId] || { walls: [], doors: [], exits: [], stairs: [], extinguishers: [] }
+    const target = saved[floorId] || { walls: [], doors: [], exits: [], stairs: [], windows: [], extinguishers: [] }
     return {
       currentFloorId: floorId,
       floorDataMap: saved,
@@ -91,6 +91,7 @@ const useStore = create((set) => ({
       doors: target.doors,
       exits: target.exits,
       stairs: target.stairs,
+      windows: target.windows ?? [],
       extinguishers: target.extinguishers ?? [],
       // Скидаємо залежні дані — перерахуються автоматично
       // currentPath і multiFloorPath НЕ скидаємо — щоб маршрут зберігався при переключенні поверху
@@ -107,13 +108,13 @@ const useStore = create((set) => ({
     delete saved[floorId]
     // Якщо видаляємо поточний — перемикаємось на перший
     if (floorId === s.currentFloorId) {
-      const target = saved[newFloors[0].id] || { walls: [], doors: [], exits: [], stairs: [] }
+      const target = saved[newFloors[0].id] || { walls: [], doors: [], exits: [], stairs: [], windows: [] }
       return {
         floors: newFloors,
         currentFloorId: newFloors[0].id,
         floorDataMap: saved,
         walls: target.walls, doors: target.doors,
-        exits: target.exits, stairs: target.stairs,
+        exits: target.exits, stairs: target.stairs, windows: target.windows ?? [],
         detectedRooms: target.detectedRooms ?? [], graphNodes: target.graphNodes ?? [], graphEdges: target.graphEdges ?? [],
         currentPath: null, multiFloorPath: null, allPaths: [], selectedRoomId: null,
       }
@@ -130,11 +131,13 @@ const useStore = create((set) => ({
   doors: [],
   exits: [],
   stairs: [],
+  windows: [],
   extinguishers: [],
 
   addWall: (wall) => set(s => ({ walls: [...s.walls, wall] })),
   addDoor: (door) => set(s => ({ doors: [...s.doors, door] })),
   addExit: (exit) => set(s => ({ exits: [...s.exits, exit] })),
+  addWindow: (window) => set(s => ({ windows: [...s.windows, window] })),
   renameExit: (idx, label) => set(s => ({
     exits: s.exits.map((e, i) => i === idx ? { ...e, label } : e),
   })),
@@ -147,6 +150,7 @@ const useStore = create((set) => ({
   removeDoor: (idx) => set(s => ({ doors: s.doors.filter((_, i) => i !== idx) })),
   removeExit: (idx) => set(s => ({ exits: s.exits.filter((_, i) => i !== idx) })),
   removeStair: (idx) => set(s => ({ stairs: s.stairs.filter((_, i) => i !== idx) })),
+  removeWindow: (idx) => set(s => ({ windows: s.windows.filter((_, i) => i !== idx) })),
   addExtinguisher: (e) => set(s => ({ extinguishers: [...s.extinguishers, e] })),
   removeExtinguisher: (idx) => set(s => ({ extinguishers: s.extinguishers.filter((_, i) => i !== idx) })),
 
@@ -264,6 +268,7 @@ const useStore = create((set) => ({
       doors: [...s.doors],
       exits: [...s.exits],
       stairs: [...s.stairs],
+      windows: [...s.windows],
       extinguishers: [...s.extinguishers],
     }]
   })),
@@ -275,7 +280,7 @@ const useStore = create((set) => ({
 
   // ── Очистити все ───────────────────────────────────────────
   clearAll: () => set({
-    walls: [], doors: [], exits: [], stairs: [], extinguishers: [],
+    walls: [], doors: [], exits: [], stairs: [], windows: [], extinguishers: [],
     detectedRooms: [], graphNodes: [], graphEdges: [],
     currentPath: null, multiFloorPath: null, allPaths: [], history: [],
     stairLinks: {}, selectedStairInfo: null,

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+﻿import { useState, useCallback } from 'react'
 import useStore from '../../../store/useStore'
 
 const GRID = 20
@@ -45,6 +45,21 @@ export function projectOnWall(x, y, wall) {
   return projectPointToSegment(x, y, wall)
 }
 
+function windowToSegment(windowItem) {
+  if (windowItem.x1 != null) return windowItem
+  const angle = windowItem.angle ?? (windowItem.horiz ? 0 : Math.PI / 2)
+  const half = GRID * 0.9
+  const dx = Math.cos(angle) * half
+  const dy = Math.sin(angle) * half
+  return {
+    ...windowItem,
+    x1: windowItem.x - dx,
+    y1: windowItem.y - dy,
+    x2: windowItem.x + dx,
+    y2: windowItem.y + dy,
+  }
+}
+
 export function findNearestWall(x, y, walls, maxDist = 28) {
   let best = null, bestD = maxDist
   walls.forEach(w => {
@@ -75,9 +90,9 @@ function isPointInStair(stair, px, py, padding = 8) {
 
 export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
   const {
-    tool, walls, doors, exits, stairs, detectedRooms,
-    addWall, addDoor, addExit, addStair,
-    removeWall, removeDoor, removeExit, removeStair,
+    tool, walls, doors, exits, stairs, windows, detectedRooms,
+    addWall, addDoor, addExit, addStair, addWindow,
+    removeWall, removeDoor, removeExit, removeStair, removeWindow,
     pushHistory,
     setMousePos,
     setSelectedStairInfo, setSelectedRoomId, currentFloorId,
@@ -91,10 +106,12 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
     const rect = e.currentTarget.getBoundingClientRect()
     const rawX = (e.clientX - rect.left - offset.x) / scale
     const rawY = (e.clientY - rect.top - offset.y) / scale
-    const snapped = snapPoint(rawX, rawY)
+    const snapped = tool === 'window' && drawing && drawStart?.wall
+      ? projectOnWall(rawX, rawY, drawStart.wall)
+      : snapPoint(rawX, rawY)
     setLocalMousePos(snapped)
     setMousePos(snapped)
-  }, [setMousePos, scale, offset])
+  }, [tool, drawing, drawStart, setMousePos, scale, offset])
 
   const handleClick = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -158,14 +175,41 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
       }
     }
 
+    if (tool === 'window') {
+      if (!drawing) {
+        const wall = findNearestWall(rawX, rawY, walls)
+        if (!wall) return
+        pushHistory()
+        const pt = projectOnWall(rawX, rawY, wall)
+        setDrawing(true)
+        setDrawStart({ x: pt.x, y: pt.y, wall, angle: pt.angle, horiz: pt.horiz })
+      } else {
+        const wall = drawStart.wall
+        const pt = projectOnWall(rawX, rawY, wall)
+        const length = Math.hypot(pt.x - drawStart.x, pt.y - drawStart.y)
+        if (length > GRID * 0.35) {
+          addWindow({
+            x1: drawStart.x,
+            y1: drawStart.y,
+            x2: pt.x,
+            y2: pt.y,
+            angle: drawStart.angle,
+            horiz: drawStart.horiz,
+          })
+        }
+        setDrawing(false)
+        setDrawStart(null)
+      }
+    }
+
     if (tool === 'stair') {
       pushHistory()
       addStair({ x, y, width: GRID * 0.9, height: GRID * 1.6, angle: 0, direction: 'up' })
     }
 
 
-    // ── Клік на сходи (будь-який інструмент крім erase) — виділяємо ──
-    if (tool !== 'erase' && tool !== 'wall') {
+    // в”Ђв”Ђ РљР»С–Рє РЅР° СЃС…РѕРґРё (Р±СѓРґСЊ-СЏРєРёР№ С–РЅСЃС‚СЂСѓРјРµРЅС‚ РєСЂС–Рј erase) вЂ” РІРёРґС–Р»СЏС”РјРѕ в”Ђв”Ђ
+    if (tool !== 'erase' && tool !== 'wall' && tool !== 'window') {
       const clickedStair = stairs.reduce((best, s, i) => {
         if (!isPointInStair(s, x, y)) return best
         const d = Math.hypot(s.x - x, s.y - y)
@@ -179,30 +223,35 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
     }
 
     if (tool === 'erase') {
-      // ── Шукаємо найближчий елемент будь-якого типу ────────
+      // в”Ђв”Ђ РЁСѓРєР°С”РјРѕ РЅР°Р№Р±Р»РёР¶С‡РёР№ РµР»РµРјРµРЅС‚ Р±СѓРґСЊ-СЏРєРѕРіРѕ С‚РёРїСѓ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
       const ERASE_RADIUS = 20
 
       const candidates = []
 
-      // Стіни (лінії)
+      // РЎС‚С–РЅРё (Р»С–РЅС–С—)
       walls.forEach((w, i) => {
         const d = distToSegment(x, y, w)
         if (d < ERASE_RADIUS) candidates.push({ type: 'wall', index: i, dist: d })
       })
 
-      // Двері (точки)
+      // Р”РІРµСЂС– (С‚РѕС‡РєРё)
       doors.forEach((d, i) => {
         const dist = Math.hypot(d.x - x, d.y - y)
         if (dist < ERASE_RADIUS) candidates.push({ type: 'door', index: i, dist })
       })
 
-      // Виходи (точки)
+      // Р’РёС…РѕРґРё (С‚РѕС‡РєРё)
       exits.forEach((ex, i) => {
         const dist = Math.hypot(ex.x - x, ex.y - y)
         if (dist < ERASE_RADIUS) candidates.push({ type: 'exit', index: i, dist })
       })
 
-      // Сходи (точки)
+      // РЎС…РѕРґРё (С‚РѕС‡РєРё)
+      windows.forEach((win, i) => {
+        const dist = distToSegment(x, y, windowToSegment(win))
+        if (dist < ERASE_RADIUS) candidates.push({ type: 'window', index: i, dist })
+      })
+
       stairs.forEach((s, i) => {
         if (!isPointInStair(s, x, y)) return
         const dist = Math.hypot(s.x - x, s.y - y)
@@ -212,7 +261,7 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
 
       if (candidates.length === 0) return
 
-      // Видаляємо найближчий
+      // Р’РёРґР°Р»СЏС”РјРѕ РЅР°Р№Р±Р»РёР¶С‡РёР№
       candidates.sort((a, b) => a.dist - b.dist)
       const target = candidates[0]
       pushHistory()
@@ -222,16 +271,17 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
         case 'door': removeDoor(target.index); break
         case 'exit': removeExit(target.index); break
         case 'stair': removeStair(target.index); break
+        case 'window': removeWindow(target.index); break
       }
     }
-  }, [tool, drawing, drawStart, walls, doors, exits, stairs,
+  }, [tool, drawing, drawStart, walls, doors, exits, stairs, windows,
     detectedRooms,
-    addWall, addDoor, addExit, addStair,
-    removeWall, removeDoor, removeExit, removeStair,
+    addWall, addDoor, addExit, addStair, addWindow,
+    removeWall, removeDoor, removeExit, removeStair, removeWindow,
     pushHistory, setSelectedStairInfo, setSelectedRoomId, currentFloorId, scale, offset])
 
   const handleDoubleClick = useCallback(() => {
-    if (tool === 'wall' && drawing) {
+    if ((tool === 'wall' || tool === 'window') && drawing) {
       setDrawing(false)
       setDrawStart(null)
     }
