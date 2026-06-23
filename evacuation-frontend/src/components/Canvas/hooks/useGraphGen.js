@@ -308,6 +308,38 @@ function orthogonalizePath(points, walls, portals = []) {
   return simplifyPolyline(result)
 }
 
+function trimPortalCellHooks(points, walls, portals = []) {
+  if (points.length <= 3) return points
+
+  const result = [...points]
+  const maxHook = GRID * 1.15
+
+  function canSkip(indexBefore, indexAfter) {
+    return hasClearLine(result[indexBefore], result[indexAfter], walls, GRID * 0.45, portals)
+  }
+
+  while (
+    result.length > 3 &&
+    Math.hypot(result[1].x - result[0].x, result[1].y - result[0].y) <= maxHook &&
+    canSkip(0, 2)
+  ) {
+    result.splice(1, 1)
+  }
+
+  while (
+    result.length > 3 &&
+    Math.hypot(
+      result[result.length - 2].x - result[result.length - 1].x,
+      result[result.length - 2].y - result[result.length - 1].y
+    ) <= maxHook &&
+    canSkip(result.length - 3, result.length - 1)
+  ) {
+    result.splice(result.length - 2, 1)
+  }
+
+  return result
+}
+
 function cellCenter(cell) {
   return {
     x: cell.col * GRID + GRID / 2,
@@ -331,12 +363,12 @@ function buildRoomPath(room, from, to, walls = []) {
   }
 
   if (hasClearLine(startPoint, finishPoint, walls, GRID * 0.45, portals)) {
-    return orthogonalizePath([
+    return trimPortalCellHooks(orthogonalizePath([
       { x: from.x, y: from.y },
       startPoint,
       finishPoint,
       { x: to.x, y: to.y },
-    ], walls, portals)
+    ], walls, portals), walls, portals)
   }
 
   const allowed = new Set(room.cells.map(([row, col]) => `${row},${col}`))
@@ -391,7 +423,7 @@ function buildRoomPath(room, from, to, walls = []) {
     { x: to.x, y: to.y },
   ]
 
-  return orthogonalizePath(points, walls, portals)
+  return trimPortalCellHooks(orthogonalizePath(points, walls, portals), walls, portals)
 }
 
 // ── Генерація графа ──────────────────────────────────────────

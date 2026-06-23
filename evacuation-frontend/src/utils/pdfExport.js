@@ -182,17 +182,6 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   const path = floorChangeIdx >= 0 ? fullPath.slice(0, floorChangeIdx + 1) : fullPath
   const last = path[path.length - 1]
 
-  const TRIM = 13
-
-  function wallOffset(wallNode, toward) {
-    const dx = toward.x - wallNode.x
-    const dy = toward.y - wallNode.y
-    const len = Math.hypot(dx, dy)
-    if (len < 2) return { x: wallNode.x, y: wallNode.y }
-    const t = Math.min(TRIM / len, 0.45)
-    return { x: wallNode.x + dx * t, y: wallNode.y + dy * t }
-  }
-
   function stairRoutePoint(stairNode) {
     if (!stairNode?.isStair) return { x: stairNode.x, y: stairNode.y }
     const vector = stairDirectionVector(stairNode)
@@ -229,13 +218,48 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     return {
       x: point.x + vector.x * GRID * 0.55,
       y: point.y + vector.y * GRID * 0.55,
+      keep: true,
     }
   }
 
-  function routePoint(node, toward) {
-    if (node.isDoor || node.isExit) return wallOffset(node, toward)
+  function routePoint(node) {
     if (node.isStair) return stairRoutePoint(node)
     return { x: node.x, y: node.y }
+  }
+
+  function addStairLeadPoints(points, startNode, endNode) {
+    if (points.length < 2) return points
+    if (startNode.isStair) {
+      points.splice(1, 0, stairLeadPoint(startNode))
+    }
+    if (endNode.isStair) {
+      points.splice(points.length - 1, 0, stairLeadPoint(endNode))
+    }
+    return points
+  }
+
+  function orthogonalizeVisualPoints(points, startNode, endNode) {
+    if (points.length <= 1) return points
+    const result = [points[0]]
+    for (let i = 1; i < points.length; i++) {
+      const from = result[result.length - 1]
+      const to = points[i]
+      const isDiagonal = Math.abs(from.x - to.x) >= 1 && Math.abs(from.y - to.y) >= 1
+      if (isDiagonal) {
+        const fromIsPortal = i === 1 && (startNode.isDoor || startNode.isExit)
+        const toIsPortal = i === points.length - 1 && (endNode.isDoor || endNode.isExit)
+        const corner = fromIsPortal
+          ? { x: from.x, y: to.y, keep: true }
+          : toIsPortal
+            ? { x: to.x, y: from.y, keep: true }
+            : { x: to.x, y: from.y, keep: true }
+        if (Math.hypot(corner.x - from.x, corner.y - from.y) > 1 && Math.hypot(to.x - corner.x, to.y - corner.y) > 1) {
+          result.push(corner)
+        }
+      }
+      result.push(to)
+    }
+    return result
   }
 
   function findEdge(a, b) {
@@ -271,6 +295,10 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
       const almostStraight = pointLineDistance(current, prev, next) < GRID * 0.28
       const smallHook = prevDist + nextDist < GRID * 2.2
 
+      if (current.keep) {
+        cleaned.push(current)
+        continue
+      }
       if (prevDist < GRID * 0.65 || nextDist < GRID * 0.45) continue
       if (sameVertical || sameHorizontal) continue
       if (almostStraight) continue
@@ -284,8 +312,8 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
 
   function removePortalHooks(points, startNode, endNode) {
     const result = [...points]
-    const startIsPortal = startNode.isDoor || startNode.isExit || startNode.isStair
-    const endIsPortal = endNode.isDoor || endNode.isExit || endNode.isStair
+    const startIsPortal = startNode.isStair
+    const endIsPortal = endNode.isStair
 
     while (
       startIsPortal &&
@@ -310,9 +338,8 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     const edge = findEdge(a, b)
     if (!edge?.points?.length) {
       const points = [routePoint(a, b), routePoint(b, a)]
-      if (a.isStair) points.splice(1, 0, stairLeadPoint(a))
-      if (b.isStair) points.splice(points.length - 1, 0, stairLeadPoint(b))
-      return cleanupRoutePoints(removePortalHooks(points, a, b))
+      addStairLeadPoints(points, a, b)
+      return cleanupRoutePoints(removePortalHooks(orthogonalizeVisualPoints(points, a, b), a, b))
     }
 
     const points = edge.from === a.id
@@ -322,11 +349,10 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     if (points.length > 1) {
       points[0] = routePoint(a, points[1])
       points[points.length - 1] = routePoint(b, points[points.length - 2])
-      if (a.isStair) points.splice(1, 0, stairLeadPoint(a))
-      if (b.isStair) points.splice(points.length - 1, 0, stairLeadPoint(b))
+      addStairLeadPoints(points, a, b)
     }
 
-    return cleanupRoutePoints(removePortalHooks(points, a, b))
+    return cleanupRoutePoints(removePortalHooks(orthogonalizeVisualPoints(points, a, b), a, b))
   }
 
   const segments = []
@@ -338,7 +364,20 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     }
   }
 
-  const drawableSegments = seenSegments ? dedupeSegments(segments, seenSegments) : segments
+  function straightenSegment(seg) {
+    const dx = Math.abs(seg.to.x - seg.from.x)
+    const dy = Math.abs(seg.to.y - seg.from.y)
+    if (dx > GRID && dy > 0 && dy <= GRID * 0.35) {
+      return { from: seg.from, to: { ...seg.to, y: seg.from.y } }
+    }
+    if (dy > GRID && dx > 0 && dx <= GRID * 0.35) {
+      return { from: seg.from, to: { ...seg.to, x: seg.from.x } }
+    }
+    return seg
+  }
+
+  const drawableSegments = (seenSegments ? dedupeSegments(segments, seenSegments) : segments)
+    .map(straightenSegment)
 
   const dash = dashed ? [16 * invScale, 12 * invScale] : []
   function strokeSegments(style, width) {
