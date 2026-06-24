@@ -223,46 +223,40 @@ export default function useDrawing(scale = 1, offset = { x: 0, y: 0 }) {
     }
 
     if (tool === 'erase') {
-      // в”Ђв”Ђ РЁСѓРєР°С”РјРѕ РЅР°Р№Р±Р»РёР¶С‡РёР№ РµР»РµРјРµРЅС‚ Р±СѓРґСЊ-СЏРєРѕРіРѕ С‚РёРїСѓ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
       const ERASE_RADIUS = 20
 
       const candidates = []
 
-      // РЎС‚С–РЅРё (Р»С–РЅС–С—)
-      walls.forEach((w, i) => {
-        const d = distToSegment(x, y, w)
-        if (d < ERASE_RADIUS) candidates.push({ type: 'wall', index: i, dist: d })
-      })
-
-      // Р”РІРµСЂС– (С‚РѕС‡РєРё)
       doors.forEach((d, i) => {
-        const dist = Math.hypot(d.x - x, d.y - y)
-        if (dist < ERASE_RADIUS) candidates.push({ type: 'door', index: i, dist })
+        const dist = Math.hypot(d.x - rawX, d.y - rawY)
+        if (dist < ERASE_RADIUS) candidates.push({ type: 'door', index: i, dist, priority: 0 })
       })
 
-      // Р’РёС…РѕРґРё (С‚РѕС‡РєРё)
       exits.forEach((ex, i) => {
-        const dist = Math.hypot(ex.x - x, ex.y - y)
-        if (dist < ERASE_RADIUS) candidates.push({ type: 'exit', index: i, dist })
+        const dist = Math.hypot(ex.x - rawX, ex.y - rawY)
+        if (dist < ERASE_RADIUS) candidates.push({ type: 'exit', index: i, dist, priority: 0 })
       })
 
-      // РЎС…РѕРґРё (С‚РѕС‡РєРё)
       windows.forEach((win, i) => {
-        const dist = distToSegment(x, y, windowToSegment(win))
-        if (dist < ERASE_RADIUS) candidates.push({ type: 'window', index: i, dist })
+        const dist = distToSegment(rawX, rawY, windowToSegment(win))
+        if (dist < ERASE_RADIUS) candidates.push({ type: 'window', index: i, dist, priority: 0 })
       })
 
       stairs.forEach((s, i) => {
-        if (!isPointInStair(s, x, y)) return
-        const dist = Math.hypot(s.x - x, s.y - y)
-        candidates.push({ type: 'stair', index: i, dist })
+        if (!isPointInStair(s, rawX, rawY)) return
+        const dist = Math.hypot(s.x - rawX, s.y - rawY)
+        candidates.push({ type: 'stair', index: i, dist, priority: 0 })
+      })
+
+      walls.forEach((w, i) => {
+        const dist = distToSegment(rawX, rawY, w)
+        if (dist < ERASE_RADIUS) candidates.push({ type: 'wall', index: i, dist, priority: 1 })
       })
 
 
       if (candidates.length === 0) return
 
-      // Р’РёРґР°Р»СЏС”РјРѕ РЅР°Р№Р±Р»РёР¶С‡РёР№
-      candidates.sort((a, b) => a.dist - b.dist)
+      candidates.sort((a, b) => (a.priority - b.priority) || (a.dist - b.dist))
       const target = candidates[0]
       pushHistory()
 

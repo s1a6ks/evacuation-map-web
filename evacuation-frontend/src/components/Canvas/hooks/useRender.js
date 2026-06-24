@@ -459,7 +459,8 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
   const drawableSegments = seenSegments ? dedupeSegments(segments, seenSegments) : segments
 
   // Малюємо кожен сегмент окремо (зазор біля стін — навмисний)
-  const dash = dashed ? [16 * invScale, 12 * invScale] : []
+  const farZoom = invScale > 1.55
+  const dash = dashed && !farZoom ? [16 * invScale, 12 * invScale] : []
   function strokeSegments(style, width) {
     ctx.strokeStyle = style
     ctx.lineWidth = width * invScale
