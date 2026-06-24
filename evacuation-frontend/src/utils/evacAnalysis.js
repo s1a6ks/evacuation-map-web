@@ -2,8 +2,6 @@
 import { buildAdjacency, dijkstra, pxToM } from './pathfinding'
 
 const WALK_SPEED = 1.4 // м/с
-const GRID = 20
-const METER = 0.5
 
 // ── Метрики поточного маршруту ────────────────────────────────
 export function computeRouteMetrics(currentPath, graphEdges, doors) {
@@ -39,29 +37,6 @@ export function computeRouteMetrics(currentPath, graphEdges, doors) {
     doorCount,
     reachesExit,
   }
-}
-
-// ── Знайти кути кімнати ────────────────────────────────────────
-function getRoomCorners(room) {
-  if (!room.cells || room.cells.length === 0) return []
-  
-  let minR = Infinity, maxR = -Infinity
-  let minC = Infinity, maxC = -Infinity
-  
-  room.cells.forEach(([r, c]) => {
-    minR = Math.min(minR, r)
-    maxR = Math.max(maxR, r)
-    minC = Math.min(minC, c)
-    maxC = Math.max(maxC, c)
-  })
-
-  // 4 кути прямокутника що обмежує кімнату
-  return [
-    { x: minC * GRID, y: minR * GRID },
-    { x: maxC * GRID + GRID, y: minR * GRID },
-    { x: minC * GRID, y: maxR * GRID + GRID },
-    { x: maxC * GRID + GRID, y: maxR * GRID + GRID },
-  ]
 }
 
 function ukPlural(count, one, few, many) {
@@ -222,24 +197,10 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
     unreachableRooms = detectedRooms.map(room => room.label)
   }
 
-  // 6. Найдальша точка на поверсі від виходу (кути всіх кімнат)
-  let farthestCornerDist = 0
-  let farthestCornerRoom = null
-
-  detectedRooms.forEach(room => {
-    const corners = getRoomCorners(room)
-    corners.forEach(corner => {
-      // Відстань від кута до найближчого виходу (Евклідова)
-      evacuationNodes.forEach(evacuationNode => {
-        const d = Math.hypot(corner.x - evacuationNode.x, corner.y - evacuationNode.y)
-        const dM = pxToM(d)
-        if (dM > farthestCornerDist) {
-          farthestCornerDist = dM
-          farthestCornerRoom = room.label
-        }
-      })
-    })
-  })
+  // 6. Найдальша точка за реальним маршрутом графа, як у списку "Відстані до виходу".
+  const farthestReachableRoom = roomRanking.find(r => r.distM !== null)
+  const farthestCornerDist = farthestReachableRoom ? parseFloat(farthestReachableRoom.distM) : 0
+  const farthestCornerRoom = farthestReachableRoom?.label ?? null
 
   // 7. Вузькі місця
   const bottlenecks = activeGraphNodes
@@ -308,14 +269,6 @@ export function computeSafetyAnalysis(graphNodes, graphEdges, detectedRooms, opt
     recommendations.push({
       level: 'warning',
       text: `Виявлено ${bottlenecks.length} ${placeWord}: ${formatList(bottleneckRooms)}. На цих ділянках може виникнути затор під час евакуації`
-    })
-  }
-
-  const farthest = roomRanking.find(r => r.distM !== null)
-  if (farthest && parseFloat(farthest.distM) > 25) {
-    recommendations.push({
-      level: 'warning',
-      text: `ДБН В.1.1-7: кімната "${farthest.label}" на ${farthest.distM}м від виходу (норма ≤25м)`
     })
   }
 
