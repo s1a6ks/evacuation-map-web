@@ -53,7 +53,7 @@ function getWallAngle(item) {
   return item.horiz ? 0 : Math.PI / 2
 }
 
-function getAdjacentRooms(item, detectedRooms) {
+function getAdjacentRooms(item, detectedRooms, walls = []) {
   const angle = getWallAngle(item)
   const normalX = -Math.sin(angle)
   const normalY = Math.cos(angle)
@@ -72,7 +72,10 @@ function getAdjacentRooms(item, detectedRooms) {
     })
   })
 
-  const rooms = samples.flatMap(point => roomsAtPoint(detectedRooms, point))
+  const portals = [{ x: item.x, y: item.y }]
+  const rooms = samples
+    .filter(point => walls.length === 0 || hasClearLine(item, point, walls, GRID * 0.15, portals))
+    .flatMap(point => roomsAtPoint(detectedRooms, point))
 
   return [...new Map(rooms.map(room => [room.id, room])).values()]
 }
@@ -118,6 +121,51 @@ function nearestRoomCell(room, point) {
 
 function cellKey(cell) {
   return `${cell.row},${cell.col}`
+}
+
+function roomCellSet(room) {
+  return new Set(room.cells.map(([row, col]) => `${row},${col}`))
+}
+
+function pointBelongsToRoom(point, cellSet, portals = []) {
+  if (portals.some(portal => Math.hypot(point.x - portal.x, point.y - portal.y) <= GRID * 0.9)) {
+    return true
+  }
+
+  const col = Math.floor(point.x / GRID)
+  const row = Math.floor(point.y / GRID)
+  const candidates = [
+    `${row},${col}`,
+    `${row - 1},${col}`,
+    `${row + 1},${col}`,
+    `${row},${col - 1}`,
+    `${row},${col + 1}`,
+  ]
+
+  return candidates.some(key => cellSet.has(key))
+}
+
+function polylineStaysInRoom(room, points, portals = []) {
+  if (!room?.cells?.length || points.length < 2) return false
+
+  const cellSet = roomCellSet(room)
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i]
+    const b = points[i + 1]
+    const length = Math.hypot(b.x - a.x, b.y - a.y)
+    const samples = Math.max(2, Math.ceil(length / (GRID * 0.45)))
+
+    for (let j = 0; j <= samples; j++) {
+      const t = j / samples
+      const point = {
+        x: a.x + (b.x - a.x) * t,
+        y: a.y + (b.y - a.y) * t,
+      }
+      if (!pointBelongsToRoom(point, cellSet, portals)) return false
+    }
+  }
+
+  return true
 }
 
 function pointToSegmentDistance(point, segment) {
@@ -359,16 +407,18 @@ function buildRoomPath(room, from, to, walls = []) {
   const portals = [{ x: from.x, y: from.y }, { x: to.x, y: to.y }]
 
   if (hasClearLine(from, to, walls, GRID * 0.45, portals)) {
-    return orthogonalizePath([{ x: from.x, y: from.y }, { x: to.x, y: to.y }], walls, portals)
+    const directPath = orthogonalizePath([{ x: from.x, y: from.y }, { x: to.x, y: to.y }], walls, portals)
+    if (polylineStaysInRoom(room, directPath, portals)) return directPath
   }
 
   if (hasClearLine(startPoint, finishPoint, walls, GRID * 0.45, portals)) {
-    return trimPortalCellHooks(orthogonalizePath([
+    const centerPath = trimPortalCellHooks(orthogonalizePath([
       { x: from.x, y: from.y },
       startPoint,
       finishPoint,
       { x: to.x, y: to.y },
     ], walls, portals), walls, portals)
+    if (polylineStaysInRoom(room, centerPath, portals)) return centerPath
   }
 
   const allowed = new Set(room.cells.map(([row, col]) => `${row},${col}`))
@@ -423,7 +473,10 @@ function buildRoomPath(room, from, to, walls = []) {
     { x: to.x, y: to.y },
   ]
 
-  return trimPortalCellHooks(orthogonalizePath(points, walls, portals), walls, portals)
+  const orthogonalPath = trimPortalCellHooks(orthogonalizePath(points, walls, portals), walls, portals)
+  if (polylineStaysInRoom(room, orthogonalPath, portals)) return orthogonalPath
+
+  return trimPortalCellHooks(points, walls, portals)
 }
 
 // ── Генерація графа ──────────────────────────────────────────
@@ -493,7 +546,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
     }
     nodes.push(doorNode)
 
-    const adjacent = getAdjacentRooms(door, detectedRooms)
+    const adjacent = getAdjacentRooms(door, detectedRooms, walls)
 
     // Реєструємо doorNode для кожної суміжної кімнати
     adjacent.forEach(room => {
@@ -526,7 +579,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
     nodes.push(stairNode)
 
     const roomAtStair = getRoomContainingPoint(stair, detectedRooms)
-    const adjacent = roomAtStair ? [roomAtStair] : getAdjacentRooms(stair, detectedRooms)
+    const adjacent = roomAtStair ? [roomAtStair] : getAdjacentRooms(stair, detectedRooms, walls)
     adjacent.forEach(room => {
       if (!roomDoorNodes.has(room.id)) roomDoorNodes.set(room.id, [])
       roomDoorNodes.get(room.id).push(stairNode)
@@ -562,7 +615,7 @@ export function generateGraph(detectedRooms, doors, exits, stairs, walls = []) {
     nodes.push(exitNode)
     exitNodesList.push(exitNode)
 
-    const adjacent = getAdjacentRooms(exit, detectedRooms)
+    const adjacent = getAdjacentRooms(exit, detectedRooms, walls)
 
     adjacent.forEach(room => {
       // Реєструємо exit як "двері" для door-to-door транзиту
