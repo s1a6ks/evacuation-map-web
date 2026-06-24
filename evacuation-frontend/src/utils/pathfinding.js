@@ -295,7 +295,7 @@ export function aStar(startId, goalIds, adj, nodes) {
   return null
 }
 
-export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true) {
+export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true, options = {}) {
   const exitNodes = nodes.filter(n => n.isExit)
   if (exitNodes.length === 0) return null
 
@@ -327,10 +327,31 @@ export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true)
     return { path: reconstructed.length > 1 ? reconstructed : null, visitedCount: dist.size }
   }
 
+  function benchmarkAverage(run, firstMs) {
+    const minRuns = firstMs < 0.05 ? 1000 : firstMs < 0.2 ? 600 : 250
+    const maxRuns = 1500
+    const targetMs = 18
+
+    for (let i = 0; i < 8; i++) run()
+
+    let runs = 0
+    const t1 = performance.now()
+    while (runs < minRuns || (runs < maxRuns && performance.now() - t1 < targetMs)) {
+      run()
+      runs++
+    }
+
+    return {
+      ms: (performance.now() - t1) / Math.max(1, runs),
+      runs,
+    }
+  }
+
   // 1. Початковий замір
   const t0 = performance.now()
   const result = useAstar ? runA() : runD()
   let ms = performance.now() - t0
+  let benchmarkRuns = 1
 
   // 2. Якщо алгоритм відпрацював занадто швидко (< 1 мс), 
   // повторюємо його 50 разів щоб отримати точний середній час, 
@@ -343,6 +364,13 @@ export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true)
       else runD()
     }
     ms = (performance.now() - t1) / iters
+    benchmarkRuns = iters
+  }
+
+  if (options.benchmark) {
+    const benchmark = benchmarkAverage(useAstar ? runA : runD, ms)
+    ms = benchmark.ms
+    benchmarkRuns = benchmark.runs
   }
 
   const path = result?.path ?? null
@@ -375,6 +403,7 @@ export function findRouteWithMetrics(startNodeId, nodes, edges, useAstar = true)
     algorithm: useAstar ? 'A*' : 'Dijkstra',
     ms: formattedMs,
     msValue: ms,
+    benchmarkRuns,
     visitedCount,
     distPx,
   }

@@ -135,8 +135,8 @@ export default function useEvacuation(scale = 1, offset = { x: 0, y: 0 }) {
     const hasExitsHere = effectiveNodes.some(n => n.isExit)
 
     if (hasExitsHere) {
-      const astarResult = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, true)
-      const dijkResult = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, false)
+      const astarResult = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, true, { benchmark: true })
+      const dijkResult = findRouteWithMetrics(startNodeId, effectiveNodes, graphEdges, false, { benchmark: true })
 
       if (setAlgorithmMetrics && (astarResult || dijkResult)) {
         setAlgorithmMetrics({

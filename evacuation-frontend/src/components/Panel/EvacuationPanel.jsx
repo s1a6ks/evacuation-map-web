@@ -261,7 +261,7 @@ export default function EvacuationPanel() {
                 </thead>
                 <tbody>
                   <tr className="border-b border-[#f5f5f5]">
-                    <td className="px-2 py-[5px] text-[#aaa]">Час (мс)</td>
+                    <td className="px-2 py-[5px] text-[#aaa]">Сер. час (мс)</td>
                     <td className="px-2 py-[5px] text-center font-mono font-medium" style={{ color: cellColor('astar', fasterIs) }}>
                       {a ? a.ms : '—'}
                     </td>
