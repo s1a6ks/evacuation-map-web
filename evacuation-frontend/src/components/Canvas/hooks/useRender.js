@@ -380,6 +380,27 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     return cleaned
   }
 
+  function straightenNearAxisPoints(points) {
+    if (points.length <= 2) return points
+    const straightened = points.map(point => ({ ...point }))
+
+    for (let i = 0; i < straightened.length - 1; i++) {
+      const current = straightened[i]
+      const next = straightened[i + 1]
+      const dx = Math.abs(next.x - current.x)
+      const dy = Math.abs(next.y - current.y)
+      const nextIsEndpoint = i + 1 === straightened.length - 1
+
+      if (!nextIsEndpoint && dx > GRID && dy > 0 && dy <= GRID * 0.35) {
+        next.y = current.y
+      } else if (!nextIsEndpoint && dy > GRID && dx > 0 && dx <= GRID * 0.35) {
+        next.x = current.x
+      }
+    }
+
+    return straightened
+  }
+
   function removePortalHooks(points, startNode, endNode) {
     const result = [...points]
     const startIsPortal = startNode.isStair
@@ -409,7 +430,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     if (!edge?.points?.length) {
       const points = [routePoint(a, b), routePoint(b, a)]
       addStairLeadPoints(points, a, b)
-      return cleanupRoutePoints(removePortalHooks(orthogonalizeVisualPoints(points, a, b), a, b))
+      return straightenNearAxisPoints(cleanupRoutePoints(removePortalHooks(orthogonalizeVisualPoints(points, a, b), a, b)))
     }
 
     const points = edge.from === a.id
@@ -422,7 +443,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
       addStairLeadPoints(points, a, b)
     }
 
-    return cleanupRoutePoints(removePortalHooks(orthogonalizeVisualPoints(points, a, b), a, b))
+    return straightenNearAxisPoints(cleanupRoutePoints(removePortalHooks(orthogonalizeVisualPoints(points, a, b), a, b)))
   }
 
   // Будуємо масив сегментів з обрізаними кінцями біля стін
@@ -435,20 +456,7 @@ function drawEvacPath(ctx, fullPath, invScale, opts = {}) {
     }
   }
 
-  function straightenSegment(seg) {
-    const dx = Math.abs(seg.to.x - seg.from.x)
-    const dy = Math.abs(seg.to.y - seg.from.y)
-    if (dx > GRID && dy > 0 && dy <= GRID * 0.35) {
-      return { from: seg.from, to: { ...seg.to, y: seg.from.y } }
-    }
-    if (dy > GRID && dx > 0 && dx <= GRID * 0.35) {
-      return { from: seg.from, to: { ...seg.to, x: seg.from.x } }
-    }
-    return seg
-  }
-
-  const drawableSegments = (seenSegments ? dedupeSegments(segments, seenSegments) : segments)
-    .map(straightenSegment)
+  const drawableSegments = seenSegments ? dedupeSegments(segments, seenSegments) : segments
 
   // Малюємо кожен сегмент окремо (зазор біля стін — навмисний)
   const dash = dashed ? [16 * invScale, 12 * invScale] : []
